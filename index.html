@@ -15,7 +15,7 @@
   </style>
 </head>
 <body>
-  <h1>Add Tinizone Tokens to Wallet</h1>
+  <h1>Cô Tiên Lữ Quán</h1>
   <p>Click the buttons below to add tokens to your wallet on Polygon Mainnet.</p>
   <button onclick="connectWallet('Cotien')">Add Cotien (COT)</button>
   <button onclick="connectWallet('Pixalala')">Add Pixalala (PIX)</button>
@@ -30,9 +30,8 @@
   <script>
     async function connectWallet(token) {
       try {
-        // Initialize WalletConnect
-        const { default: WalletConnect } = await import('https://unpkg.com/@walletconnect/web3-provider@2.11.0/dist/umd/index.min.js');
-        const { default: QRCodeModal } = await import('https://unpkg.com/@walletconnect/qrcode-modal@2.6.2/dist/umd/index.min.js');
+        const { default: WalletConnect } = window.WalletConnect;
+        const { default: QRCodeModal } = window.WalletConnectQRCodeModal;
 
         const provider = new WalletConnect({
           bridge: "https://bridge.walletconnect.org",
