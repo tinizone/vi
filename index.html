@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ví Tinizone & Giá Token COT</title>
+    <title>Ví Tinizone & Giá Token</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -40,6 +40,7 @@
         }
         .token img, .price-item img { width: 40px; height: 40px; margin-right: 10px; }
         .token-info, .price-info { flex-grow: 1; }
+        .token-price { font-size: 0.9em; color: #bbb; }
         .transfer-form, .price-section {
             margin-top: 20px;
             padding: 15px;
@@ -78,6 +79,7 @@
             <img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png" alt="COT Logo">
             <div class="token-info">
                 <h3>Cotien (COT)</h3>
+                <p class="token-price">Giá: <span id="cot-price">Đang tải...</span> USD</p>
                 <p>Số dư: <span id="cot-balance">0</span> COT</p>
             </div>
         </div>
@@ -87,6 +89,7 @@
             <img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png" alt="PIX Logo">
             <div class="token-info">
                 <h3>Pixalala (PIX)</h3>
+                <p class="token-price">Giá: <span id="pix-price">Đang tải...</span> USD</p>
                 <p>Số dư: <span id="pix-balance">0</span> PIX</p>
             </div>
         </div>
@@ -96,6 +99,7 @@
             <img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png" alt="TIN Logo">
             <div class="token-info">
                 <h3>Tinizone (TIN)</h3>
+                <p class="token-price">Giá: <span id="tin-price">Đang tải...</span> USD</p>
                 <p>Số dư: <span id="tin-balance">0</span> TIN</p>
             </div>
         </div>
@@ -147,7 +151,6 @@
         let userAccount;
         const polygonRpcUrl = "https://polygon-rpc.com";
 
-        // Kiểm tra ví trên thiết bị di động và máy tính
         if (typeof window.ethereum !== "undefined") {
             web3 = new Web3(window.ethereum);
         } else if (typeof window.web3 !== "undefined") {
@@ -236,10 +239,10 @@
             }
         }
 
-        // Thêm token vào MetaMask
+        // Thêm token vào MetaMask (sửa lỗi)
         async function addTokenToMetaMask(token) {
             try {
-                await window.ethereum.request({
+                const wasAdded = await window.ethereum.request({
                     method: "wallet_watchAsset",
                     params: {
                         type: "ERC20",
@@ -251,6 +254,11 @@
                         }
                     }
                 });
+                if (wasAdded) {
+                    console.log(`${token.symbol} đã được thêm vào MetaMask!`);
+                } else {
+                    console.log(`Người dùng đã từ chối thêm ${token.symbol}.`);
+                }
             } catch (error) {
                 console.error(`Lỗi khi thêm ${token.symbol} vào MetaMask:`, error);
             }
@@ -277,7 +285,6 @@
                 await addTokenToMetaMask(tokens.PIX);
                 await addTokenToMetaMask(tokens.TIN);
 
-                // Lấy lịch sử giao dịch
                 fetchTransactionHistory(userAccount);
             } catch (error) {
                 console.error("Lỗi khi kết nối ví:", error);
@@ -366,16 +373,27 @@
             }
         }
 
-        // Giá Token COT
-        const COT_MATIC_POOL = "0xYOUR_COT_MATIC_POOL_ADDRESS"; // Thay bằng địa chỉ pool thực tế
+        // Giá Token (tự động tìm pool trên QuickSwap)
         const QUICKSWAP_API = "https://api.thegraph.com/subgraphs/name/sameepsi/quickswap06";
         const COINGECKO_API = "https://api.coingecko.com/api/v3/simple/price?ids=matic-network,vietnamese-dong&vs_currencies=usd,vnd";
+        const MATIC_ADDRESS = "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"; // Địa chỉ MATIC trên Polygon
         let priceHistory = [];
         let chartInstance = null;
 
-        async function getCOTPrice() {
+        // Tìm pool COT/MATIC trên QuickSwap
+        async function findCOTPool() {
             const query = {
-                query: `{ pair(id: "${COT_MATIC_POOL.toLowerCase()}") { token0Price } }`
+                query: `
+                    {
+                        pairs(where: {
+                            token0: "${tokens.COT.address.toLowerCase()}",
+                            token1: "${MATIC_ADDRESS.toLowerCase()}"
+                        }, first: 1) {
+                            id
+                            token0Price
+                        }
+                    }
+                `
             };
             try {
                 const response = await fetch(QUICKSWAP_API, {
@@ -384,17 +402,47 @@
                     body: JSON.stringify(query)
                 });
                 const data = await response.json();
-                if (data.data && data.data.pair && data.data.pair.token0Price) {
-                    return parseFloat(data.data.pair.token0Price);
+                if (data.data && data.data.pairs && data.data.pairs.length > 0) {
+                    return {
+                        poolId: data.data.pairs[0].id,
+                        token0Price: parseFloat(data.data.pairs[0].token0Price)
+                    };
                 } else {
-                    throw new Error("Không tìm thấy pool hoặc dữ liệu không hợp lệ.");
+                    // Thử tìm pool ngược (MATIC/COT)
+                    const reverseQuery = {
+                        query: `
+                            {
+                                pairs(where: {
+                                    token0: "${MATIC_ADDRESS.toLowerCase()}",
+                                    token1: "${tokens.COT.address.toLowerCase()}"
+                                }, first: 1) {
+                                    id
+                                    token1Price
+                                }
+                            }
+                        `
+                    };
+                    const reverseResponse = await fetch(QUICKSWAP_API, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(reverseQuery)
+                    });
+                    const reverseData = await reverseResponse.json();
+                    if (reverseData.data && reverseData.data.pairs && reverseData.data.pairs.length > 0) {
+                        return {
+                            poolId: reverseData.data.pairs[0].id,
+                            token0Price: parseFloat(reverseData.data.pairs[0].token1Price)
+                        };
+                    }
+                    throw new Error("Không tìm thấy pool COT/MATIC trên QuickSwap.");
                 }
             } catch (error) {
-                console.error("Lỗi lấy giá COT:", error.message);
+                console.error("Lỗi tìm pool COT/MATIC:", error.message);
                 return null;
             }
         }
 
+        // Lấy giá MATIC từ CoinGecko
         async function getMATICPrice() {
             try {
                 const response = await fetch(COINGECKO_API);
@@ -409,28 +457,39 @@
             }
         }
 
+        // Cập nhật giá
         async function updatePrice() {
             document.getElementById("status").innerText = "Đang tải dữ liệu...";
-            const cotPriceInMatic = await getCOTPrice();
+            const poolData = await findCOTPool();
             const maticPrices = await getMATICPrice();
 
-            if (cotPriceInMatic !== null && maticPrices) {
+            if (poolData && maticPrices) {
+                const cotPriceInMatic = poolData.token0Price;
                 const cotPriceInUSD = cotPriceInMatic * maticPrices.usd;
                 const cotPriceInVND = cotPriceInMatic * maticPrices.vnd;
 
+                // Cập nhật giá COT trong phần token
+                document.getElementById("cot-price").innerText = cotPriceInUSD.toFixed(6);
                 document.getElementById("cot-price-matic").innerText = cotPriceInMatic.toFixed(6);
                 document.getElementById("cot-price-usd").innerText = cotPriceInUSD.toFixed(6);
                 document.getElementById("cot-price-vnd").innerText = cotPriceInVND.toLocaleString() + " VNĐ";
                 document.getElementById("status").innerText = "Cập nhật thành công!";
 
+                // Giả lập giá PIX và TIN (do không có pool)
+                document.getElementById("pix-price").innerText = "0.01"; // Giả lập giá PIX
+                document.getElementById("tin-price").innerText = "0.02"; // Giả lập giá TIN
+
                 priceHistory.push(cotPriceInUSD);
                 if (priceHistory.length > 10) priceHistory.shift();
                 updateChart();
             } else {
+                document.getElementById("cot-price").innerText = "Lỗi";
                 document.getElementById("cot-price-matic").innerText = "Lỗi";
                 document.getElementById("cot-price-usd").innerText = "Lỗi";
                 document.getElementById("cot-price-vnd").innerText = "Lỗi";
-                document.getElementById("status").innerText = "Lỗi: Kiểm tra kết nối hoặc địa chỉ pool.";
+                document.getElementById("pix-price").innerText = "Lỗi";
+                document.getElementById("tin-price").innerText = "Lỗi";
+                document.getElementById("status").innerText = "Lỗi: Kiểm tra kết nối hoặc dữ liệu pool.";
             }
         }
 
@@ -464,8 +523,8 @@
 
         // Tải lần đầu khi trang mở
         window.onload = () => {
-            connectWallet(); // Tự động kết nối ví khi tải trang
-            updatePrice();   // Tự động cập nhật giá khi tải trang
+            connectWallet();
+            updatePrice();
         };
     </script>
 </body>
