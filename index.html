@@ -5,34 +5,129 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ví Tinizone</title>
     <style>
-        .token { margin: 20px; }
-        .token img { width: 50px; height: 50px; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #1a73e8;
+        }
+        button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #1557b0;
+        }
+        .token {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .token img {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+        }
+        .token-info {
+            flex-grow: 1;
+        }
+        .transfer-form {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        .transfer-form input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .history {
+            margin-top: 20px;
+        }
+        .history-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .history-item a {
+            color: #1a73e8;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
-    <h1>Ví Tinizone</h1>
-    <button onclick="connectWallet()">Kết nối ví</button>
-    <div id="wallet-address"></div>
+    <div class="container">
+        <h1>Ví Tinizone</h1>
+        <button onclick="connectWallet()">Kết nối ví</button>
+        <div id="wallet-address" style="text-align: center; margin: 10px 0;"></div>
 
-    <!-- Token 1: Cotien (COT) -->
-    <div class="token">
-        <img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png" alt="COT Logo">
-        <h3>Cotien (COT)</h3>
-        <p>Số dư: <span id="cot-balance">0</span> COT</p>
-    </div>
+        <!-- Token 1: Cotien (COT) -->
+        <div class="token">
+            <img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png" alt="COT Logo">
+            <div class="token-info">
+                <h3>Cotien (COT)</h3>
+                <p>Số dư: <span id="cot-balance">0</span> COT</p>
+            </div>
+        </div>
 
-    <!-- Token 2: Pixalala (PIX) -->
-    <div class="token">
-        <img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png" alt="PIX Logo">
-        <h3>Pixalala (PIX)</h3>
-        <p>Số dư: <span id="pix-balance">0</span> PIX</p>
-    </div>
+        <!-- Token 2: Pixalala (PIX) -->
+        <div class="token">
+            <img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png" alt="PIX Logo">
+            <div class="token-info">
+                <h3>Pixalala (PIX)</h3>
+                <p>Số dư: <span id="pix-balance">0</span> PIX</p>
+            </div>
+        </div>
 
-    <!-- Token 3: Tinizone (TIN) -->
-    <div class="token">
-        <img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png" alt="TIN Logo">
-        <h3>Tinizone (TIN)</h3>
-        <p>Số dư: <span id="tin-balance">0</span> TIN</p>
+        <!-- Token 3: Tinizone (TIN) -->
+        <div class="token">
+            <img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png" alt="TIN Logo">
+            <div class="token-info">
+                <h3>Tinizone (TIN)</h3>
+                <p>Số dư: <span id="tin-balance">0</span> TIN</p>
+            </div>
+        </div>
+
+        <!-- Form gửi token -->
+        <div class="transfer-form">
+            <h3>Gửi Token</h3>
+            <select id="token-select">
+                <option value="COT">COT</option>
+                <option value="PIX">PIX</option>
+                <option value="TIN">TIN</option>
+            </select>
+            <input type="text" id="recipient-address" placeholder="Địa chỉ nhận">
+            <input type="text" id="amount" placeholder="Số lượng">
+            <button onclick="transferToken()">Gửi</button>
+        </div>
+
+        <!-- Lịch sử giao dịch -->
+        <div class="history">
+            <h3>Lịch sử giao dịch</h3>
+            <div id="transaction-history"></div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
