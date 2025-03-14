@@ -1,94 +1,83 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Thêm Token Cô Tiên Lữ Quán</title>
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f0f0f0; }
-    h1 { color: #333; font-size: 2em; margin-bottom: 20px; }
-    button { padding: 12px 20px; margin: 10px; font-size: 16px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; transition: 0.3s; }
-    button:hover { background-color: #0056b3; }
-    .rainbow-btn { background-color: #ff4f00; } 
-    .rainbow-btn:hover { background-color: #cc3c00; }
-    ul { list-style: none; padding: 0; }
-    li { margin: 10px 0; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ví Web3 Đơn Giản</title>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        input, button { margin: 5px; padding: 10px; }
+        img { width: 50px; height: 50px; border-radius: 50%; }
+    </style>
 </head>
 <body>
-  <h1>Thêm Token vào Ví</h1>
-  <p>Chọn ví của bạn để thêm token vào danh sách tài sản.</p>
+    <h2>Ví Web3 Đơn Giản</h2>
+    <button onclick="connectWallet()">🔗 Kết Nối MetaMask</button>
+    <p id="walletAddress">Chưa kết nối</p>
 
-  <h2>Cotien (COT)</h2>
-  <button onclick="addTokenToMetamask('Cotien')">Thêm vào MetaMask</button>
-  <a href="rainbow://wallet/watch-asset?address=0x0d4013b4e2e2f89171bbe956da995757fb5a6678&symbol=COT&decimals=18&image=https://raw.githubusercontent.com/tinizone/Logo/main/Cotien256.png">
-    <button class="rainbow-btn">Thêm vào Rainbow Wallet</button>
-  </a>
+    <h3>🛠 Nhập Token</h3>
+    <input type="text" id="tokenAddress" placeholder="Nhập địa chỉ token">
+    <input type="text" id="tokenSymbol" placeholder="Nhập ký hiệu (VD: COTIEN)">
+    <input type="number" id="tokenDecimals" placeholder="Số thập phân (VD: 18)">
+    <input type="text" id="tokenLogo" placeholder="URL logo (tùy chọn)">
+    <button onclick="addToken()">➕ Nhập Token</button>
 
-  <h2>Pixalala (PIX)</h2>
-  <button onclick="addTokenToMetamask('Pixalala')">Thêm vào MetaMask</button>
-  <a href="rainbow://wallet/watch-asset?address=0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7&symbol=PIX&decimals=18&image=https://raw.githubusercontent.com/tinizone/Logo/main/Pi256.png">
-    <button class="rainbow-btn">Thêm vào Rainbow Wallet</button>
-  </a>
+    <h3>💰 Số Dư Token</h3>
+    <img id="tokenLogoImg" src="" style="display:none;">
+    <p id="tokenBalance">Chưa có dữ liệu</p>
 
-  <h2>Tinizone (TIN)</h2>
-  <button onclick="addTokenToMetamask('Tinizone')">Thêm vào MetaMask</button>
-  <a href="rainbow://wallet/watch-asset?address=0xe7d8c8818106a565980315675d7adcb1d8ab1318&symbol=TIN&decimals=18&image=https://raw.githubusercontent.com/tinizone/Logo/main/Tin256.png">
-    <button class="rainbow-btn">Thêm vào Rainbow Wallet</button>
-  </a>
+    <h3>📤 Gửi Token</h3>
+    <input type="text" id="receiverAddress" placeholder="Nhập địa chỉ nhận">
+    <input type="number" id="sendAmount" placeholder="Nhập số lượng">
+    <button onclick="sendToken()">🚀 Gửi Token</button>
 
-  <p><strong>Nếu token không hiển thị, thêm thủ công với địa chỉ sau:</strong></p>
-  <ul>
-    <li><strong>Cotien:</strong> 0x0d4013b4e2e2f89171bbe956da995757fb5a6678</li>
-    <li><strong>Pixalala:</strong> 0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7</li>
-    <li><strong>Tinizone:</strong> 0xe7d8c8818106a565980315675d7adcb1d8ab1318</li>
-  </ul>
+    <script>
+        let provider, signer, tokenContract, tokenDecimals, tokenSymbol;
 
-  <script>
-    async function addTokenToMetamask(token) {
-      const tokens = {
-        Cotien: {
-          address: "0x0d4013b4e2e2f89171bbe956da995757fb5a6678",
-          symbol: "COT",
-          decimals: 18,
-          image: "https://raw.githubusercontent.com/tinizone/Logo/main/Cotien256.png"
-        },
-        Pixalala: {
-          address: "0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7",
-          symbol: "PIX",
-          decimals: 18,
-          image: "https://raw.githubusercontent.com/tinizone/Logo/main/Pi256.png"
-        },
-        Tinizone: {
-          address: "0xe7d8c8818106a565980315675d7adcb1d8ab1318",
-          symbol: "TIN",
-          decimals: 18,
-          image: "https://raw.githubusercontent.com/tinizone/Logo/main/Tin256.png"
+        async function connectWallet() {
+            if (!window.ethereum) {
+                alert("Vui lòng cài đặt MetaMask!");
+                return;
+            }
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+            signer = provider.getSigner();
+            document.getElementById("walletAddress").innerText = "Đã kết nối: " + (await signer.getAddress());
         }
-      };
 
-      const tokenData = tokens[token];
+        async function addToken() {
+            let address = document.getElementById("tokenAddress").value;
+            tokenSymbol = document.getElementById("tokenSymbol").value;
+            tokenDecimals = Number(document.getElementById("tokenDecimals").value);
+            let logo = document.getElementById("tokenLogo").value || '';
 
-      if (!window.ethereum) {
-        alert("Vui lòng cài đặt MetaMask để thêm token.");
-        return;
-      }
+            tokenContract = new ethers.Contract(address, [
+                "function balanceOf(address owner) view returns (uint256)",
+                "function transfer(address to, uint256 amount) returns (bool)"
+            ], signer);
 
-      try {
-        const wasAdded = await window.ethereum.request({
-          method: "wallet_watchAsset",
-          params: {
-            type: "ERC20",
-            options: tokenData
-          }
-        });
+            const balance = await tokenContract.balanceOf(await signer.getAddress());
+            document.getElementById("tokenBalance").innerText = `${ethers.utils.formatUnits(balance, tokenDecimals)} ${tokenSymbol}`;
+            
+            if (logo) {
+                document.getElementById("tokenLogoImg").src = logo;
+                document.getElementById("tokenLogoImg").style.display = "block";
+            }
+        }
 
-        alert(wasAdded ? `${token} đã được thêm vào ví!` : `Thêm ${token} thất bại.`);
-      } catch (error) {
-        console.error("Lỗi khi thêm token:", error);
-        alert(`Lỗi: ${error.message}`);
-      }
-    }
-  </script>
+        async function sendToken() {
+            if (!tokenContract) {
+                alert("Vui lòng nhập token trước!");
+                return;
+            }
+            let to = document.getElementById("receiverAddress").value;
+            let amount = document.getElementById("sendAmount").value;
+            let tx = await tokenContract.transfer(to, ethers.utils.parseUnits(amount, tokenDecimals));
+            alert("Giao dịch đang được xử lý...");
+            await tx.wait();
+            alert("Giao dịch thành công!");
+        }
+    </script>
 </body>
 </html>
