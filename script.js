@@ -1,11 +1,17 @@
 // Khởi tạo Web3 với RPC Polygon
 let web3;
 const polygonRpcUrl = "https://polygon-rpc.com";
-if (window.ethereum) {
+
+// Kiểm tra nếu đang chạy trên thiết bị di động và có MetaMask
+if (typeof window.ethereum !== "undefined") {
     web3 = new Web3(window.ethereum);
+} else if (typeof window.web3 !== "undefined") {
+    // Một số ví trên di động (như Trust Wallet) có thể sử dụng window.web3
+    web3 = new Web3(window.web3.currentProvider);
 } else {
-    web3 = new Web3(polygonRpcUrl); // Fallback nếu không có MetaMask
-    alert("Vui lòng cài đặt MetaMask để tương tác tốt hơn!");
+    // Nếu không có ví, sử dụng RPC công khai (chỉ để đọc)
+    web3 = new Web3(polygonRpcUrl);
+    alert("Không phát hiện ví. Vui lòng truy cập từ trình duyệt của MetaMask hoặc cài đặt MetaMask!");
 }
 
 // ABI cơ bản của ERC-20
@@ -50,7 +56,6 @@ async function switchToPolygon() {
             params: [{ chainId: "0x89" }] // Chain ID 137 (Polygon Mainnet) trong hex
         });
     } catch (switchError) {
-        // Nếu mạng chưa được thêm vào MetaMask, yêu cầu thêm mạng
         if (switchError.code === 4902) {
             await window.ethereum.request({
                 method: "wallet_addEthereumChain",
@@ -75,8 +80,8 @@ async function switchToPolygon() {
 // Kết nối ví MetaMask
 async function connectWallet() {
     try {
-        if (!window.ethereum) {
-            alert("Vui lòng cài đặt MetaMask!");
+        if (!window.ethereum && !window.web3) {
+            alert("Không phát hiện ví. Vui lòng truy cập từ trình duyệt của MetaMask!");
             return;
         }
 
