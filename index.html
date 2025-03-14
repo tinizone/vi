@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Tokens to MetaMask - Tinizone</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 50px;
+      background-color: #f0f0f0;
+    }
+    h1 {
+      color: #333;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    p {
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <h1>Add Tinizone Tokens to MetaMask</h1>
+  <p>Click the buttons below to add tokens to your MetaMask wallet on Polygon Mainnet.</p>
+  <button onclick="addToken('Cotien')">Add Cotien (COT)</button>
+  <button onclick="addToken('Pixalala')">Add Pixalala (PIX)</button>
+  <button onclick="addToken('Tinizone')">Add Tinizone (TIN)</button>
+
+  <script>
+    async function addToken(token) {
+      // Đảm bảo người dùng đã cài MetaMask
+      if (typeof window.ethereum === 'undefined') {
+        alert('Please install MetaMask to add tokens. Visit https://metamask.io to download.');
+        return;
+      }
+
+      // Kiểm tra mạng Polygon
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      if (chainId !== '0x89') { // 0x89 là chainId của Polygon Mainnet (137 trong hex)
+        try {
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0x89' }],
+          });
+        } catch (switchError) {
+          if (switchError.code === 4902) {
+            // Nếu mạng Polygon chưa được thêm, thêm mạng
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: '0x89',
+                chainName: 'Polygon Mainnet',
+                rpcUrls: ['https://polygon-rpc.com'],
+                nativeCurrency: {
+                  name: 'MATIC',
+                  symbol: 'MATIC',
+                  decimals: 18
+                },
+                blockExplorerUrls: ['https://polygonscan.com']
+              }],
+            });
+          } else {
+            alert('Please switch to Polygon Mainnet in MetaMask and try again.');
+            return;
+          }
+        }
+      }
+
+      const tokens = {
+        Cotien: {
+          address: "0x0d4013b4e2e2f89171bbe956da995757fb5a6678",
+          symbol: "COT",
+          decimals: 18,
+          image: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png"
+        },
+        Pixalala: {
+          address: "0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7",
+          symbol: "PIX",
+          decimals: 18,
+          image: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png"
+        },
+        Tinizone: {
+          address: "0xe7d8c8818106a565980315675d7adcb1d8ab1318",
+          symbol: "TIN",
+          decimals: 18,
+          image: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png"
+        }
+      };
+
+      const tokenData = tokens[token];
+      try {
+        const wasAdded = await window.ethereum.request({
+          method: "wallet_watchAsset",
+          params: {
+            type: "ERC20",
+            options: {
+              address: tokenData.address,
+              symbol: tokenData.symbol,
+              decimals: tokenData.decimals,
+              image: tokenData.image
+            }
+          }
+        });
+        if (wasAdded) {
+          alert(`${token} has been added to MetaMask!`);
+        } else {
+          alert(`Failed to add ${token}. User rejected the request.`);
+        }
+      } catch (error) {
+        console.error(`Error adding ${token}:`, error);
+        alert(`Error adding ${token}: ${error.message}`);
+      }
+    }
+  </script>
+</body>
+</html>
