@@ -3,15 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Add Tokens to Wallet - Tinizone</title>
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@2.9.0/dist/umd/index.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/qrcode-modal@2.6.2/dist/umd/index.min.js"></script>
+  <title>Cô Tiên Lữ Quán - Add Tokens</title>
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/sign-client@2.11.2/dist/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/modal@2.6.2/dist/index.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f0f0f0; }
-    h1 { color: #333; }
-    button { padding: 10px 20px; margin: 10px; font-size: 16px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    h1 { color: #333; font-size: 2em; margin-bottom: 20px; }
+    button { padding: 12px 25px; margin: 10px; font-size: 16px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.3s; }
     button:hover { background-color: #0056b3; }
-    p { color: #666; }
+    p { color: #666; font-size: 1.1em; }
+    ul { list-style-type: none; padding: 0; }
+    ul li { margin: 10px 0; }
   </style>
 </head>
 <body>
@@ -30,72 +32,112 @@
   <script>
     async function connectWallet(token) {
       try {
-        // Check if WalletConnect and QRCodeModal are available
-        if (!window.WalletConnect || !window.WalletConnectQRCodeModal) {
+        // Check if WalletConnect SignClient and Modal are available
+        if (typeof window.WalletConnectSignClient === 'undefined' || typeof window.WalletConnectModal === 'undefined') {
           throw new Error("WalletConnect library failed to load. Please check your internet connection or try again later.");
         }
 
-        const provider = new window.WalletConnect({
-          bridge: "https://bridge.walletconnect.org",
-          qrcodeModal: window.WalletConnectQRCodeModal
+        // Initialize WalletConnect Modal
+        const walletConnectModal = new window.WalletConnectModal({
+          projectId: "YOUR_WALLETCONNECT_PROJECT_ID", // Replace with your Project ID from https://cloud.reown.com
+          themeMode: "light",
+          themeVariables: {
+            "--wcm-z-index": "9999"
+          }
         });
 
-        // Check if connection is already established
-        if (!provider.connected) {
-          await provider.connect();
-        }
+        // Initialize SignClient
+        const signClient = await window.WalletConnectSignClient.init({
+          projectId: "YOUR_WALLETCONNECT_PROJECT_ID", // Replace with your Project ID
+          metadata: {
+            name: "Cô Tiên Lữ Quán",
+            description: "Add custom tokens to your wallet on Polygon Mainnet",
+            url: "https://tinizone.github.io/tinizone-token-metamask",
+            icons: ["https://walletconnect.com/walletconnect-logo.png"]
+          }
+        });
 
-        // Subscribe to connect event
-        provider.on("connect", async (error, payload) => {
-          if (error) throw error;
-
-          const { chainId } = payload.params[0];
-          if (chainId !== 137) {
-            try {
-              await provider.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: '0x89' }],
-              });
-            } catch (switchError) {
-              if (switchError.code === 4902) {
-                await provider.request({
-                  method: 'wallet_addEthereumChain',
-                  params: [{
-                    chainId: '0x89',
-                    chainName: 'Polygon Mainnet',
-                    rpcUrls: ['https://polygon-rpc.com'],
-                    nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
-                    blockExplorerUrls: ['https://polygonscan.com']
-                  }],
-                });
-              } else {
-                throw new Error('Please switch to Polygon Mainnet manually in your wallet.');
-              }
+        // Connect to wallet
+        const { uri, approval } = await signClient.connect({
+          requiredNamespaces: {
+            eip155: {
+              methods: ["wallet_watchAsset", "wallet_switchEthereumChain", "wallet_addEthereumChain"],
+              chains: ["eip155:137"], // Polygon Mainnet
+              events: ["chainChanged", "accountsChanged"]
             }
           }
+        });
 
-          const tokens = {
-            Cotien: { address: "0x0d4013b4e2e2f89171bbe956da995757fb5a6678", symbol: "COT", decimals: 18, image: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png" },
-            Pixalala: { address: "0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7", symbol: "PIX", decimals: 18, image: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png" },
-            Tinizone: { address: "0xe7d8c8818106a565980315675d7adcb1d8ab1318", symbol: "TIN", decimals: 18, image: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png" }
-          };
-          const tokenData = tokens[token];
-          const wasAdded = await provider.request({
+        // Open QR code modal if URI is available
+        if (uri) {
+          walletConnectModal.openModal({ uri });
+        }
+
+        // Wait for wallet approval
+        const session = await approval();
+        walletConnectModal.closeModal();
+
+        // Switch to Polygon Mainnet if not already on it
+        const chainId = session.namespaces.eip155.chains[0].split(":")[1];
+        if (chainId !== "137") {
+          try {
+            await signClient.request({
+              topic: session.topic,
+              chainId: "eip155:137",
+              request: {
+                method: "wallet_switchEthereumChain",
+                params: [{ chainId: "0x89" }]
+              }
+            });
+          } catch (switchError) {
+            if (switchError.code === 4902) {
+              await signClient.request({
+                topic: session.topic,
+                chainId: "eip155:137",
+                request: {
+                  method: "wallet_addEthereumChain",
+                  params: [{
+                    chainId: "0x89",
+                    chainName: "Polygon Mainnet",
+                    rpcUrls: ["https://polygon-rpc.com"],
+                    nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
+                    blockExplorerUrls: ["https://polygonscan.com"]
+                  }]
+                }
+              });
+            } else {
+              throw new Error("Please switch to Polygon Mainnet manually in your wallet.");
+            }
+          }
+        }
+
+        // Add token to wallet
+        const tokens = {
+          Cotien: { address: "0x0d4013b4e2e2f89171bbe956da995757fb5a6678", symbol: "COT", decimals: 18, image: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png" },
+          Pixalala: { address: "0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7", symbol: "PIX", decimals: 18, image: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png" },
+          Tinizone: { address: "0xe7d8c8818106a565980315675d7adcb1d8ab1318", symbol: "TIN", decimals: 18, image: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png" }
+        };
+        const tokenData = tokens[token];
+        const wasAdded = await signClient.request({
+          topic: session.topic,
+          chainId: "eip155:137",
+          request: {
             method: "wallet_watchAsset",
             params: { type: "ERC20", options: tokenData }
-          });
-          if (wasAdded) {
-            alert(`${token} has been added to your wallet! Please check your token list.`);
-          } else {
-            alert(`Failed to add ${token}. Please approve the request in your wallet or add manually.`);
           }
         });
 
-        // Handle disconnect
-        provider.on("disconnect", (error) => {
-          if (error) throw error;
+        if (wasAdded) {
+          alert(`${token} has been added to your wallet! Please check your token list.`);
+        } else {
+          alert(`Failed to add ${token}. Please approve the request in your wallet or add manually.`);
+        }
+
+        // Handle session disconnect
+        signClient.on("session_delete", () => {
           alert("Wallet disconnected.");
         });
+
       } catch (error) {
         console.error(`Error adding ${token}:`, error);
         alert(`Error: ${error.message}. Try adding manually with the addresses listed above.`);
