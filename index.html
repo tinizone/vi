@@ -3,125 +3,98 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Add Tokens to MetaMask - Tinizone</title>
+  <title>Add Tokens to Wallet - Tinizone</title>
+  <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+  <script src="https://unpkg.com/@walletconnect/qrcode-modal@1.8.0/dist/umd/index.min.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 50px;
-      background-color: #f0f0f0;
-    }
-    h1 {
-      color: #333;
-    }
-    button {
-      padding: 10px 20px;
-      margin: 10px;
-      font-size: 16px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    p {
-      color: #666;
-    }
+    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f0f0f0; }
+    h1 { color: #333; }
+    button { padding: 10px 20px; margin: 10px; font-size: 16px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    button:hover { background-color: #0056b3; }
+    p { color: #666; }
   </style>
 </head>
 <body>
-  <h1>Add Tinizone Tokens to MetaMask</h1>
-  <p>Click the buttons below to add tokens to your MetaMask wallet on Polygon Mainnet.</p>
-  <button onclick="addToken('Cotien')">Add Cotien (COT)</button>
-  <button onclick="addToken('Pixalala')">Add Pixalala (PIX)</button>
-  <button onclick="addToken('Tinizone')">Add Tinizone (TIN)</button>
+  <h1>Add Tinizone Tokens to Wallet</h1>
+  <p>Click the buttons below to add tokens to your wallet on Polygon Mainnet.</p>
+  <button onclick="connectWallet('Cotien')">Add Cotien (COT)</button>
+  <button onclick="connectWallet('Pixalala')">Add Pixalala (PIX)</button>
+  <button onclick="connectWallet('Tinizone')">Add Tinizone (TIN)</button>
+  <p><strong>Note:</strong> If tokens do not show up, add them manually with these addresses:</p>
+  <ul>
+    <li>Cotien: 0x0d4013b4e2e2f89171bbe956da995757fb5a6678</li>
+    <li>Pixalala: 0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7</li>
+    <li>Tinizone: 0xe7d8c8818106a565980315675d7adcb1d8ab1318</li>
+  </ul>
 
   <script>
-    async function addToken(token) {
-      // Đảm bảo người dùng đã cài MetaMask
-      if (typeof window.ethereum === 'undefined') {
-        alert('Please install MetaMask to add tokens. Visit https://metamask.io to download.');
-        return;
-      }
-
-      // Kiểm tra mạng Polygon
-      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-      if (chainId !== '0x89') { // 0x89 là chainId của Polygon Mainnet (137 trong hex)
-        try {
-          await window.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: '0x89' }],
-          });
-        } catch (switchError) {
-          if (switchError.code === 4902) {
-            // Nếu mạng Polygon chưa được thêm, thêm mạng
-            await window.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [{
-                chainId: '0x89',
-                chainName: 'Polygon Mainnet',
-                rpcUrls: ['https://polygon-rpc.com'],
-                nativeCurrency: {
-                  name: 'MATIC',
-                  symbol: 'MATIC',
-                  decimals: 18
-                },
-                blockExplorerUrls: ['https://polygonscan.com']
-              }],
-            });
-          } else {
-            alert('Please switch to Polygon Mainnet in MetaMask and try again.');
-            return;
-          }
-        }
-      }
-
-      const tokens = {
-        Cotien: {
-          address: "0x0d4013b4e2e2f89171bbe956da995757fb5a6678",
-          symbol: "COT",
-          decimals: 18,
-          image: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png"
-        },
-        Pixalala: {
-          address: "0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7",
-          symbol: "PIX",
-          decimals: 18,
-          image: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png"
-        },
-        Tinizone: {
-          address: "0xe7d8c8818106a565980315675d7adcb1d8ab1318",
-          symbol: "TIN",
-          decimals: 18,
-          image: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png"
-        }
-      };
-
-      const tokenData = tokens[token];
+    async function connectWallet(token) {
       try {
-        const wasAdded = await window.ethereum.request({
-          method: "wallet_watchAsset",
-          params: {
-            type: "ERC20",
-            options: {
-              address: tokenData.address,
-              symbol: tokenData.symbol,
-              decimals: tokenData.decimals,
-              image: tokenData.image
+        // Initialize WalletConnect
+        const provider = new WalletConnect.default({
+          bridge: "https://bridge.walletconnect.org",
+          qrcodeModal: WalletConnectQRCodeModal
+        });
+
+        // Check if connection is already established
+        if (!provider.connected) {
+          await provider.createSession();
+        }
+
+        // Subscribe to connect event
+        provider.on("connect", async (error, payload) => {
+          if (error) throw error;
+
+          const { chainId } = payload.params[0];
+          if (chainId !== 137) {
+            try {
+              await provider.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: '0x89' }],
+              });
+            } catch (switchError) {
+              if (switchError.code === 4902) {
+                await provider.request({
+                  method: 'wallet_addEthereumChain',
+                  params: [{
+                    chainId: '0x89',
+                    chainName: 'Polygon Mainnet',
+                    rpcUrls: ['https://polygon-rpc.com'],
+                    nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+                    blockExplorerUrls: ['https://polygonscan.com']
+                  }],
+                });
+              } else {
+                throw new Error('Please switch to Polygon Mainnet manually in your wallet.');
+              }
             }
           }
+
+          const tokens = {
+            Cotien: { address: "0x0d4013b4e2e2f89171bbe956da995757fb5a6678", symbol: "COT", decimals: 18, image: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png" },
+            Pixalala: { address: "0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7", symbol: "PIX", decimals: 18, image: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png" },
+            Tinizone: { address: "0xe7d8c8818106a565980315675d7adcb1d8ab1318", symbol: "TIN", decimals: 18, image: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png" }
+          };
+          const tokenData = tokens[token];
+          const wasAdded = await provider.request({
+            method: "wallet_watchAsset",
+            params: { type: "ERC20", options: tokenData }
+          });
+          if (wasAdded) {
+            alert(`${token} has been added to your wallet! Please check your token list.`);
+          } else {
+            alert(`Failed to add ${token}. Please approve the request in your wallet or add manually.`);
+          }
         });
-        if (wasAdded) {
-          alert(`${token} has been added to MetaMask!`);
-        } else {
-          alert(`Failed to add ${token}. User rejected the request.`);
-        }
+
+        // Handle disconnect
+        provider.on("disconnect", (error, payload) => {
+          if (error) throw error;
+          alert("Wallet disconnected.");
+        });
       } catch (error) {
         console.error(`Error adding ${token}:`, error);
-        alert(`Error adding ${token}: ${error.message}`);
+        alert(`Error: ${error.message}. Try adding manually with the addresses listed above.`);
       }
     }
   </script>
