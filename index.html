@@ -44,23 +44,35 @@
     <script src="https://unpkg.com/@web3modal/ethers@3.5.4/dist/index.js"></script>
 
     <script>
-        let provider, signer, account;
+        let provider, signer, account, modal;
 
-        // Cấu hình Web3Modal
-        const modal = new window.Web3Modal.default({
-            projectId: "71ea15e324540c729b0528f5e9df30f3",
-            walletConnectVersion: 2,
-            chains: [{
-                chainId: "0x89",
-                chainName: "Polygon Mainnet",
-                rpcUrls: ["https://polygon-rpc.com"],
-                nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
-                blockExplorerUrls: ["https://polygonscan.com"]
-            }]
+        // Khởi tạo Web3Modal sau khi thư viện tải xong
+        document.addEventListener("DOMContentLoaded", () => {
+            try {
+                if (!window.Web3Modal) {
+                    throw new Error("Thư viện Web3Modal chưa tải. Kiểm tra kết nối internet.");
+                }
+                modal = new window.Web3Modal.default({
+                    projectId: "71ea15e324540c729b0528f5e9df30f3",
+                    walletConnectVersion: 2,
+                    chains: [{
+                        chainId: "0x89",
+                        chainName: "Polygon Mainnet",
+                        rpcUrls: ["https://polygon-rpc.com"],
+                        nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
+                        blockExplorerUrls: ["https://polygonscan.com"]
+                    }]
+                });
+            } catch (error) {
+                alert("⚠️ Lỗi khởi tạo Web3Modal: " + (error.message || "Không rõ nguyên nhân."));
+            }
         });
 
         async function connectWallet() {
             try {
+                if (!modal) {
+                    throw new Error("Web3Modal chưa được khởi tạo. Tải lại trang và thử lại.");
+                }
                 const instance = await modal.connect();
                 if (!instance) throw new Error("Không nhận được provider từ WalletConnect.");
                 provider = new ethers.BrowserProvider(instance);
