@@ -40,17 +40,17 @@
 
     <!-- Thư viện ethers.js -->
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.0/dist/ethers.umd.min.js"></script>
-    <!-- Web3Modal -->
-    <script src="https://unpkg.com/@web3modal/ethers@3.5.4/dist/index.js"></script>
+    <!-- Web3Modal với fallback CDN -->
+    <script src="https://unpkg.com/@web3modal/ethers@3.5.4/dist/index.js" onload="onWeb3ModalLoaded()" onerror="onWeb3ModalError()"></script>
 
     <script>
         let provider, signer, account, modal;
 
-        // Khởi tạo Web3Modal sau khi thư viện tải xong
-        document.addEventListener("DOMContentLoaded", () => {
+        // Xử lý khi Web3Modal tải thành công
+        function onWeb3ModalLoaded() {
             try {
                 if (!window.Web3Modal) {
-                    throw new Error("Thư viện Web3Modal chưa tải. Kiểm tra kết nối internet.");
+                    throw new Error("Thư viện Web3Modal không khả dụng sau khi tải.");
                 }
                 modal = new window.Web3Modal.default({
                     projectId: "71ea15e324540c729b0528f5e9df30f3",
@@ -63,10 +63,16 @@
                         blockExplorerUrls: ["https://polygonscan.com"]
                     }]
                 });
+                console.log("Web3Modal đã tải thành công.");
             } catch (error) {
                 alert("⚠️ Lỗi khởi tạo Web3Modal: " + (error.message || "Không rõ nguyên nhân."));
             }
-        });
+        }
+
+        // Xử lý khi Web3Modal tải thất bại
+        function onWeb3ModalError() {
+            alert("⚠️ Lỗi tải thư viện Web3Modal. Kiểm tra kết nối internet hoặc thử tải lại trang. Fallback: https://unpkg.com/@web3modal/ethers@3.5.4/dist/index.js");
+        }
 
         async function connectWallet() {
             try {
