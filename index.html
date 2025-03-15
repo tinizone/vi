@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ví Tinizone - Thêm Token với WalletConnect</title>
+    <title>Ví Tinizone - WalletConnect</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -20,7 +20,7 @@
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
-        h1, h2 { text-align: center; color: #ff9800; }
+        h1 { text-align: center; color: #ff9800; }
         button {
             background-color: #ff9800;
             color: white;
@@ -32,23 +32,15 @@
             width: 100%;
         }
         button:hover { background-color: #e68a00; }
-        .token, .custom-token-form {
+        .token {
             padding: 10px;
             border-bottom: 1px solid #444;
+            display: flex;
+            align-items: center;
         }
         .token img { width: 40px; height: 40px; margin-right: 10px; }
         .token-info { flex-grow: 1; }
         .token-price { font-size: 0.9em; color: #bbb; }
-        .custom-token-form input {
-            width: 100%;
-            padding: 8px;
-            margin: 5px 0;
-            border: 1px solid #666;
-            border-radius: 5px;
-            background: #555;
-            color: white;
-        }
-        #custom-token-list { margin-top: 20px; padding: 10px; background: #444; border-radius: 5px; }
         #qr-code { text-align: center; margin: 10px 0; }
     </style>
 </head>
@@ -60,7 +52,7 @@
         <div id="qr-code"></div>
 
         <!-- Token 1: Cotien (COT) -->
-        <div class="token" style="display: flex; align-items: center;">
+        <div class="token">
             <img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png" alt="COT Logo">
             <div class="token-info">
                 <h3>Cotien (COT)</h3>
@@ -70,7 +62,7 @@
         </div>
 
         <!-- Token 2: Pixalala (PIX) -->
-        <div class="token" style="display: flex; align-items: center;">
+        <div class="token">
             <img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png" alt="PIX Logo">
             <div class="token-info">
                 <h3>Pixalala (PIX)</h3>
@@ -80,7 +72,7 @@
         </div>
 
         <!-- Token 3: Tinizone (TIN) -->
-        <div class="token" style="display: flex; align-items: center;">
+        <div class="token">
             <img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png" alt="TIN Logo">
             <div class="token-info">
                 <h3>Tinizone (TIN)</h3>
@@ -88,32 +80,15 @@
                 <p>Số dư: <span id="tin-balance">0</span> TIN</p>
             </div>
         </div>
-
-        <!-- Form thêm token tùy chỉnh -->
-        <div class="custom-token-form">
-            <h2>Thêm Token Tùy Chỉnh</h2>
-            <input type="text" id="custom-token-name" placeholder="Tên token">
-            <input type="text" id="custom-token-address" placeholder="Địa chỉ hợp đồng">
-            <input type="text" id="custom-token-symbol" placeholder="Ký hiệu (VD: XYZ)">
-            <input type="text" id="custom-token-logo" placeholder="URL logo (tùy chọn)">
-            <button onclick="addCustomToken()">Thêm Token vào Ví</button>
-        </div>
-
-        <!-- Danh sách token tùy chỉnh -->
-        <div id="custom-token-list">
-            <h3>Token Tùy Chỉnh</h3>
-            <ul id="custom-token-display"></ul>
-        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
-    <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+    <script src="https://unpkg.com/@walletconnect/web3-provider@2.8.0/dist/umd/index.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
         let web3;
-        let userAccount;
         let walletConnectProvider;
-        let customTokens = [];
+        let userAccount;
 
         const tokens = {
             COT: { 
@@ -145,21 +120,25 @@
 
         async function connectWallet() {
             try {
-                walletConnectProvider = new WalletConnectProvider({
-                    rpc: { 137: "https://polygon-rpc.com" },
-                    chainId: 137
+                // Khởi tạo WalletConnect v2
+                walletConnectProvider = new WalletConnectProvider.default({
+                    rpc: { 137: "https://polygon-rpc.com" }, // Polygon Mainnet
+                    chainId: 137,
+                    qrcode: true
                 });
 
-                await walletConnectProvider.enable();
+                // Kết nối ví
+                await walletConnectProvider.connect();
                 web3 = new Web3(walletConnectProvider);
                 const accounts = await web3.eth.getAccounts();
                 userAccount = accounts[0];
                 document.getElementById("wallet-address").innerText = `Địa chỉ ví: ${userAccount}`;
 
+                // Hiển thị mã QR
                 const qrCodeDiv = document.getElementById("qr-code");
                 qrCodeDiv.innerHTML = "";
                 new QRCode(qrCodeDiv, {
-                    text: walletConnectProvider.wc.uri,
+                    text: walletConnectProvider.connector.uri,
                     width: 128,
                     height: 128
                 });
@@ -167,14 +146,16 @@
                 initializeContracts();
                 updateBalances(userAccount);
 
-                walletConnectProvider.on("disconnect", () => {
+                // Xử lý ngắt kết nối
+                walletConnectProvider.on("disconnect", (code, reason) => {
                     document.getElementById("wallet-address").innerText = "";
                     document.getElementById("qr-code").innerHTML = "";
+                    console.log(`Ngắt kết nối: ${reason}, Mã: ${code}`);
                     alert("Đã ngắt kết nối ví!");
                 });
             } catch (error) {
                 console.error("Lỗi kết nối ví:", error);
-                alert("Không thể kết nối ví. Vui lòng quét mã QR bằng ví hỗ trợ WalletConnect.");
+                alert(`Không thể kết nối ví. Vui lòng quét mã QR bằng ví hỗ trợ WalletConnect (lỗi: ${error.message}).`);
             }
         }
 
@@ -194,56 +175,8 @@
                 document.getElementById("tin-balance").innerText = web3.utils.fromWei(tinBalance, "ether");
             } catch (error) {
                 console.error("Lỗi lấy số dư:", error);
+                alert(`Không thể lấy số dư (lỗi: ${error.message}).`);
             }
-        }
-
-        async function addCustomToken() {
-            const name = document.getElementById("custom-token-name").value;
-            const address = document.getElementById("custom-token-address").value;
-            const symbol = document.getElementById("custom-token-symbol").value;
-            const logo = document.getElementById("custom-token-logo").value || "https://via.placeholder.com/40";
-
-            if (!name || !address || !symbol) {
-                alert("Vui lòng nhập đầy đủ thông tin!");
-                return;
-            }
-
-            if (!web3.utils.isAddress(address)) {
-                alert("Địa chỉ hợp đồng không hợp lệ!");
-                return;
-            }
-
-            const token = { name, address, symbol, logo };
-            customTokens.push(token);
-
-            const display = document.getElementById("custom-token-display");
-            const li = document.createElement("li");
-            li.innerHTML = `<img src="${logo}" style="width: 20px; height: 20px; margin-right: 5px;"> ${name} (${symbol}) - ${address}`;
-            display.appendChild(li);
-
-            try {
-                await walletConnectProvider.request({
-                    method: "wallet_watchAsset",
-                    params: {
-                        type: "ERC20",
-                        options: {
-                            address: address,
-                            symbol: symbol,
-                            decimals: 18,
-                            image: logo
-                        }
-                    }
-                });
-                alert(`Đã thêm ${name} (${symbol}) vào ví đã kết nối qua WalletConnect!`);
-            } catch (error) {
-                console.error("Lỗi thêm token vào ví:", error);
-                alert("Không thể thêm token. Vui lòng kiểm tra ví của bạn.");
-            }
-
-            document.getElementById("custom-token-name").value = "";
-            document.getElementById("custom-token-address").value = "";
-            document.getElementById("custom-token-symbol").value = "";
-            document.getElementById("custom-token-logo").value = "";
         }
 
         window.onload = () => {
