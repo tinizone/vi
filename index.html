@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ví Tinizone - WalletConnect v2</title>
+    <title>Ví Tinizone - RPC Công khai</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -29,40 +29,29 @@
 </head>
 <body>
     <h1>Ví Tinizone</h1>
-    <button onclick="connectWallet()">Kết nối ví qua WalletConnect</button>
+    <button onclick="connectWallet()">Kết nối ví</button>
     <div id="wallet-address"></div>
 
-    <!-- Thư viện Web3.js -->
     <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
-    
-    <!-- WalletConnect v2 -->
-    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
-
     <script>
         let web3;
-        let walletConnectProvider;
 
         async function connectWallet() {
             try {
-                walletConnectProvider = new WalletConnectProvider.default({
-                    projectId: "71ea15e324540c729b0528f5e9df30f3", // Thay bằng Project ID từ WalletConnect
-                    chains: [137], // Polygon Mainnet
-                    rpcMap: { 
-                        137: "https://polygon-mainnet.infura.io/v3/885286775969403e9ce7f593d96c446a" // Thay bằng Project ID từ Infura
-                    }
-                });
+                // Tạo kết nối trực tiếp tới RPC công khai
+                const rpcUrl = "https://polygon-rpc.com";
+                web3 = new Web3(rpcUrl);
 
-                await walletConnectProvider.enable();
-                web3 = new Web3(walletConnectProvider);
-                const accounts = await web3.eth.getAccounts();
-                document.getElementById("wallet-address").innerText = `Địa chỉ ví: ${accounts[0]}`;
-
-                walletConnectProvider.on("disconnect", () => {
-                    document.getElementById("wallet-address").innerText = "Đã ngắt kết nối ví!";
-                });
-
+                // Yêu cầu kết nối ví bằng cách prompt user
+                if (window.ethereum) {
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    const accounts = await web3.eth.getAccounts();
+                    document.getElementById("wallet-address").innerText = `Địa chỉ ví: ${accounts[0]}`;
+                } else {
+                    alert("Trình duyệt của bạn không hỗ trợ Ethereum!");
+                }
             } catch (error) {
-                console.error("Lỗi kết nối ví:", error);
+                console.error("Lỗi:", error);
                 alert(`Lỗi: ${error.message}`);
             }
         }
