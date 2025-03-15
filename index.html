@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ví Tinizone & Giá Token</title>
+    <title>Ví Tinizone - Thêm Token với WalletConnect</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -32,22 +32,14 @@
             width: 100%;
         }
         button:hover { background-color: #e68a00; }
-        .token, .price-item {
-            display: flex;
-            align-items: center;
+        .token, .custom-token-form {
             padding: 10px;
             border-bottom: 1px solid #444;
         }
-        .token img, .price-item img { width: 40px; height: 40px; margin-right: 10px; }
-        .token-info, .price-info { flex-grow: 1; }
+        .token img { width: 40px; height: 40px; margin-right: 10px; }
+        .token-info { flex-grow: 1; }
         .token-price { font-size: 0.9em; color: #bbb; }
-        .transfer-form, .price-section {
-            margin-top: 20px;
-            padding: 15px;
-            background: #444;
-            border-radius: 5px;
-        }
-        .transfer-form input, .transfer-form select {
+        .custom-token-form input {
             width: 100%;
             padding: 8px;
             margin: 5px 0;
@@ -56,26 +48,19 @@
             background: #555;
             color: white;
         }
-        .history, .chart-section {
-            margin-top: 20px;
-        }
-        .history-item, .status {
-            padding: 10px;
-            border-bottom: 1px solid #666;
-        }
-        .history-item a { color: #ff9800; text-decoration: none; }
-        canvas { width: 100%; height: 200px; }
-        .status { color: #ffeb3b; font-size: 0.9em; }
+        #custom-token-list { margin-top: 20px; padding: 10px; background: #444; border-radius: 5px; }
+        #qr-code { text-align: center; margin: 10px 0; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Ví Tinizone</h1>
-        <button onclick="connectWallet()">Kết nối ví</button>
+        <button onclick="connectWallet()">Kết nối ví qua WalletConnect</button>
         <div id="wallet-address" style="text-align: center; margin: 10px 0;"></div>
+        <div id="qr-code"></div>
 
         <!-- Token 1: Cotien (COT) -->
-        <div class="token">
+        <div class="token" style="display: flex; align-items: center;">
             <img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png" alt="COT Logo">
             <div class="token-info">
                 <h3>Cotien (COT)</h3>
@@ -85,7 +70,7 @@
         </div>
 
         <!-- Token 2: Pixalala (PIX) -->
-        <div class="token">
+        <div class="token" style="display: flex; align-items: center;">
             <img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png" alt="PIX Logo">
             <div class="token-info">
                 <h3>Pixalala (PIX)</h3>
@@ -95,7 +80,7 @@
         </div>
 
         <!-- Token 3: Tinizone (TIN) -->
-        <div class="token">
+        <div class="token" style="display: flex; align-items: center;">
             <img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png" alt="TIN Logo">
             <div class="token-info">
                 <h3>Tinizone (TIN)</h3>
@@ -104,427 +89,165 @@
             </div>
         </div>
 
-        <!-- Form gửi token -->
-        <div class="transfer-form">
-            <h3>Gửi Token</h3>
-            <select id="token-select">
-                <option value="COT">COT</option>
-                <option value="PIX">PIX</option>
-                <option value="TIN">TIN</option>
-            </select>
-            <input type="text" id="recipient-address" placeholder="Địa chỉ nhận">
-            <input type="text" id="amount" placeholder="Số lượng">
-            <button onclick="transferToken()">Gửi</button>
+        <!-- Form thêm token tùy chỉnh -->
+        <div class="custom-token-form">
+            <h2>Thêm Token Tùy Chỉnh</h2>
+            <input type="text" id="custom-token-name" placeholder="Tên token">
+            <input type="text" id="custom-token-address" placeholder="Địa chỉ hợp đồng">
+            <input type="text" id="custom-token-symbol" placeholder="Ký hiệu (VD: XYZ)">
+            <input type="text" id="custom-token-logo" placeholder="URL logo (tùy chọn)">
+            <button onclick="addCustomToken()">Thêm Token vào Ví</button>
         </div>
 
-        <!-- Lịch sử giao dịch -->
-        <div class="history">
-            <h3>Lịch sử giao dịch</h3>
-            <div id="transaction-history"></div>
-        </div>
-
-        <!-- Giá Token COT -->
-        <h2>Giá Token COT</h2>
-        <div class="price-section">
-            <div class="price-item">
-                <p><strong>Giá COT theo MATIC:</strong> <span id="cot-price-matic">Đang tải...</span></p>
-            </div>
-            <div class="price-item">
-                <p><strong>Giá COT theo USD:</strong> <span id="cot-price-usd">Đang tải...</span></p>
-            </div>
-            <div class="price-item">
-                <p><strong>Giá COT theo VNĐ:</strong> <span id="cot-price-vnd">Đang tải...</span></p>
-            </div>
-            <button onclick="updatePrice()">Làm mới giá</button>
-            <p class="status" id="status">Đang tải dữ liệu...</p>
-        </div>
-        <div class="chart-section">
-            <canvas id="chart"></canvas>
+        <!-- Danh sách token tùy chỉnh -->
+        <div id="custom-token-list">
+            <h3>Token Tùy Chỉnh</h3>
+            <ul id="custom-token-display"></ul>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
-        // Khởi tạo Web3 với RPC Polygon
         let web3;
         let userAccount;
-        const polygonRpcUrl = "https://polygon-rpc.com";
+        let walletConnectProvider;
+        let customTokens = [];
 
-        if (typeof window.ethereum !== "undefined") {
-            web3 = new Web3(window.ethereum);
-        } else if (typeof window.web3 !== "undefined") {
-            web3 = new Web3(window.web3.currentProvider);
-        } else {
-            web3 = new Web3(polygonRpcUrl);
-            alert("Không phát hiện ví. Vui lòng truy cập từ trình duyệt của MetaMask!");
-        }
-
-        // ABI đầy đủ của ERC-20
-        const erc20ABI = [
-            {
-                "constant": true,
-                "inputs": [{"name": "_owner", "type": "address"}],
-                "name": "balanceOf",
-                "outputs": [{"name": "balance", "type": "uint256"}],
-                "type": "function"
-            },
-            {
-                "constant": false,
-                "inputs": [
-                    {"name": "_to", "type": "address"},
-                    {"name": "_value", "type": "uint256"}
-                ],
-                "name": "transfer",
-                "outputs": [{"name": "success", "type": "bool"}],
-                "type": "function"
-            }
-        ];
-
-        // Địa chỉ hợp đồng Proxy Advanced của 3 token trên Polygon
         const tokens = {
-            COT: {
-                address: "0x0d4013b4e2e2f89171bbe956da995757fb5a6678",
-                contract: null,
+            COT: { 
+                name: "Cotien",
                 symbol: "COT",
-                logo: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png"
+                address: "0x0d4013b4e2e2f89171bbe956da995757fb5a6678", 
+                logo: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png",
+                contract: null 
             },
-            PIX: {
-                address: "0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7",
-                contract: null,
+            PIX: { 
+                name: "Pixalala",
                 symbol: "PIX",
-                logo: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png"
+                address: "0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7", 
+                logo: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png",
+                contract: null 
             },
-            TIN: {
-                address: "0xe7d8c8818106a565980315675d7adcb1d8ab1318",
-                contract: null,
+            TIN: { 
+                name: "Tinizone",
                 symbol: "TIN",
-                logo: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png"
+                address: "0xe7d8c8818106a565980315675d7adcb1d8ab1318", 
+                logo: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png",
+                contract: null 
             }
         };
 
-        // Khởi tạo hợp đồng
+        const erc20ABI = [
+            {"constant": true, "inputs": [{"name": "_owner", "type": "address"}], "name": "balanceOf", "outputs": [{"name": "balance", "type": "uint256"}], "type": "function"}
+        ];
+
+        async function connectWallet() {
+            try {
+                walletConnectProvider = new WalletConnectProvider({
+                    rpc: { 137: "https://polygon-rpc.com" },
+                    chainId: 137
+                });
+
+                await walletConnectProvider.enable();
+                web3 = new Web3(walletConnectProvider);
+                const accounts = await web3.eth.getAccounts();
+                userAccount = accounts[0];
+                document.getElementById("wallet-address").innerText = `Địa chỉ ví: ${userAccount}`;
+
+                const qrCodeDiv = document.getElementById("qr-code");
+                qrCodeDiv.innerHTML = "";
+                new QRCode(qrCodeDiv, {
+                    text: walletConnectProvider.wc.uri,
+                    width: 128,
+                    height: 128
+                });
+
+                initializeContracts();
+                updateBalances(userAccount);
+
+                walletConnectProvider.on("disconnect", () => {
+                    document.getElementById("wallet-address").innerText = "";
+                    document.getElementById("qr-code").innerHTML = "";
+                    alert("Đã ngắt kết nối ví!");
+                });
+            } catch (error) {
+                console.error("Lỗi kết nối ví:", error);
+                alert("Không thể kết nối ví. Vui lòng quét mã QR bằng ví hỗ trợ WalletConnect.");
+            }
+        }
+
         function initializeContracts() {
             tokens.COT.contract = new web3.eth.Contract(erc20ABI, tokens.COT.address);
             tokens.PIX.contract = new web3.eth.Contract(erc20ABI, tokens.PIX.address);
             tokens.TIN.contract = new web3.eth.Contract(erc20ABI, tokens.TIN.address);
         }
 
-        // Chuyển mạng sang Polygon nếu cần
-        async function switchToPolygon() {
-            try {
-                await window.ethereum.request({
-                    method: "wallet_switchEthereumChain",
-                    params: [{ chainId: "0x89" }]
-                });
-            } catch (switchError) {
-                if (switchError.code === 4902) {
-                    await window.ethereum.request({
-                        method: "wallet_addEthereumChain",
-                        params: [{
-                            chainId: "0x89",
-                            chainName: "Polygon Mainnet",
-                            rpcUrls: [polygonRpcUrl],
-                            nativeCurrency: {
-                                name: "MATIC",
-                                symbol: "MATIC",
-                                decimals: 18
-                            },
-                            blockExplorerUrls: ["https://polygonscan.com/"]
-                        }]
-                    });
-                } else {
-                    throw switchError;
-                }
-            }
-        }
-
-        // Thêm token vào MetaMask (sửa lỗi)
-        async function addTokenToMetaMask(token) {
-            try {
-                const wasAdded = await window.ethereum.request({
-                    method: "wallet_watchAsset",
-                    params: {
-                        type: "ERC20",
-                        options: {
-                            address: token.address,
-                            symbol: token.symbol,
-                            decimals: 18,
-                            image: token.logo
-                        }
-                    }
-                });
-                if (wasAdded) {
-                    console.log(`${token.symbol} đã được thêm vào MetaMask!`);
-                } else {
-                    console.log(`Người dùng đã từ chối thêm ${token.symbol}.`);
-                }
-            } catch (error) {
-                console.error(`Lỗi khi thêm ${token.symbol} vào MetaMask:`, error);
-            }
-        }
-
-        // Kết nối ví MetaMask
-        async function connectWallet() {
-            try {
-                if (!window.ethereum && !window.web3) {
-                    alert("Không phát hiện ví. Vui lòng truy cập từ trình duyệt của MetaMask!");
-                    return;
-                }
-
-                await switchToPolygon();
-                const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-                userAccount = accounts[0];
-                document.getElementById("wallet-address").innerText = `Địa chỉ ví: ${userAccount}`;
-
-                initializeContracts();
-                updateBalances(userAccount);
-
-                // Thêm tất cả token vào MetaMask
-                await addTokenToMetaMask(tokens.COT);
-                await addTokenToMetaMask(tokens.PIX);
-                await addTokenToMetaMask(tokens.TIN);
-
-                fetchTransactionHistory(userAccount);
-            } catch (error) {
-                console.error("Lỗi khi kết nối ví:", error);
-                alert("Không thể kết nối ví. Vui lòng kiểm tra MetaMask và mạng Polygon.");
-            }
-        }
-
-        // Cập nhật số dư token
         async function updateBalances(account) {
             try {
                 const cotBalance = await tokens.COT.contract.methods.balanceOf(account).call();
                 document.getElementById("cot-balance").innerText = web3.utils.fromWei(cotBalance, "ether");
-
                 const pixBalance = await tokens.PIX.contract.methods.balanceOf(account).call();
                 document.getElementById("pix-balance").innerText = web3.utils.fromWei(pixBalance, "ether");
-
                 const tinBalance = await tokens.TIN.contract.methods.balanceOf(account).call();
                 document.getElementById("tin-balance").innerText = web3.utils.fromWei(tinBalance, "ether");
             } catch (error) {
-                console.error("Lỗi khi lấy số dư:", error);
-                alert("Không thể lấy số dư. Đảm bảo bạn đã kết nối đúng mạng Polygon.");
+                console.error("Lỗi lấy số dư:", error);
             }
         }
 
-        // Gửi token
-        async function transferToken() {
-            const tokenSymbol = document.getElementById("token-select").value;
-            const recipient = document.getElementById("recipient-address").value;
-            const amount = document.getElementById("amount").value;
+        async function addCustomToken() {
+            const name = document.getElementById("custom-token-name").value;
+            const address = document.getElementById("custom-token-address").value;
+            const symbol = document.getElementById("custom-token-symbol").value;
+            const logo = document.getElementById("custom-token-logo").value || "https://via.placeholder.com/40";
 
-            if (!web3.utils.isAddress(recipient)) {
-                alert("Địa chỉ nhận không hợp lệ!");
+            if (!name || !address || !symbol) {
+                alert("Vui lòng nhập đầy đủ thông tin!");
                 return;
             }
 
-            if (!amount || isNaN(amount) || amount <= 0) {
-                alert("Số lượng không hợp lệ!");
+            if (!web3.utils.isAddress(address)) {
+                alert("Địa chỉ hợp đồng không hợp lệ!");
                 return;
             }
 
+            const token = { name, address, symbol, logo };
+            customTokens.push(token);
+
+            const display = document.getElementById("custom-token-display");
+            const li = document.createElement("li");
+            li.innerHTML = `<img src="${logo}" style="width: 20px; height: 20px; margin-right: 5px;"> ${name} (${symbol}) - ${address}`;
+            display.appendChild(li);
+
             try {
-                const token = tokens[tokenSymbol];
-                const amountWei = web3.utils.toWei(amount, "ether");
-                const result = await token.contract.methods.transfer(recipient, amountWei).send({ from: userAccount });
-                alert(`Gửi ${amount} ${tokenSymbol} thành công! Tx Hash: ${result.transactionHash}`);
-                updateBalances(userAccount);
-                fetchTransactionHistory(userAccount);
-            } catch (error) {
-                console.error("Lỗi khi gửi token:", error);
-                alert("Không thể gửi token. Vui lòng kiểm tra số dư và phí gas.");
-            }
-        }
-
-        // Lấy lịch sử giao dịch từ Polygonscan API
-        async function fetchTransactionHistory(account) {
-            const apiKey = "YOUR_POLYGONSCAN_API_KEY"; // Thay bằng API Key của bạn
-            const url = `https://api.polygonscan.com/api?module=account&action=tokentx&address=${account}&startblock=0&endblock=99999999&sort=desc&apikey=${apiKey}`;
-            
-            try {
-                const response = await fetch(url);
-                const data = await response.json();
-                const historyDiv = document.getElementById("transaction-history");
-                historyDiv.innerHTML = "";
-
-                if (data.status === "1" && data.result.length > 0) {
-                    const transactions = data.result.slice(0, 5);
-                    transactions.forEach(tx => {
-                        const tokenSymbol = tx.tokenSymbol;
-                        const amount = web3.utils.fromWei(tx.value, "ether");
-                        const direction = tx.from.toLowerCase() === account.toLowerCase() ? "Gửi" : "Nhận";
-                        const otherAddress = direction === "Gửi" ? tx.to : tx.from;
-                        const txLink = `https://polygonscan.com/tx/${tx.hash}`;
-                        const historyItem = `
-                            <div class="history-item">
-                                ${direction} ${amount} ${tokenSymbol} ${direction === "Gửi" ? "đến" : "từ"} ${otherAddress}<br>
-                                <a href="${txLink}" target="_blank">Xem giao dịch</a>
-                            </div>`;
-                        historyDiv.innerHTML += historyItem;
-                    });
-                } else {
-                    historyDiv.innerHTML = "<p>Không có giao dịch nào.</p>";
-                }
-            } catch (error) {
-                console.error("Lỗi khi lấy lịch sử giao dịch:", error);
-                document.getElementById("transaction-history").innerHTML = "<p>Không thể tải lịch sử giao dịch.</p>";
-            }
-        }
-
-        // Giá Token (tự động tìm pool trên QuickSwap)
-        const QUICKSWAP_API = "https://api.thegraph.com/subgraphs/name/sameepsi/quickswap06";
-        const COINGECKO_API = "https://api.coingecko.com/api/v3/simple/price?ids=matic-network,vietnamese-dong&vs_currencies=usd,vnd";
-        const MATIC_ADDRESS = "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"; // Địa chỉ MATIC trên Polygon
-        let priceHistory = [];
-        let chartInstance = null;
-
-        // Tìm pool COT/MATIC trên QuickSwap
-        async function findCOTPool() {
-            const query = {
-                query: `
-                    {
-                        pairs(where: {
-                            token0: "${tokens.COT.address.toLowerCase()}",
-                            token1: "${MATIC_ADDRESS.toLowerCase()}"
-                        }, first: 1) {
-                            id
-                            token0Price
+                await walletConnectProvider.request({
+                    method: "wallet_watchAsset",
+                    params: {
+                        type: "ERC20",
+                        options: {
+                            address: address,
+                            symbol: symbol,
+                            decimals: 18,
+                            image: logo
                         }
                     }
-                `
-            };
-            try {
-                const response = await fetch(QUICKSWAP_API, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(query)
                 });
-                const data = await response.json();
-                if (data.data && data.data.pairs && data.data.pairs.length > 0) {
-                    return {
-                        poolId: data.data.pairs[0].id,
-                        token0Price: parseFloat(data.data.pairs[0].token0Price)
-                    };
-                } else {
-                    // Thử tìm pool ngược (MATIC/COT)
-                    const reverseQuery = {
-                        query: `
-                            {
-                                pairs(where: {
-                                    token0: "${MATIC_ADDRESS.toLowerCase()}",
-                                    token1: "${tokens.COT.address.toLowerCase()}"
-                                }, first: 1) {
-                                    id
-                                    token1Price
-                                }
-                            }
-                        `
-                    };
-                    const reverseResponse = await fetch(QUICKSWAP_API, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(reverseQuery)
-                    });
-                    const reverseData = await reverseResponse.json();
-                    if (reverseData.data && reverseData.data.pairs && reverseData.data.pairs.length > 0) {
-                        return {
-                            poolId: reverseData.data.pairs[0].id,
-                            token0Price: parseFloat(reverseData.data.pairs[0].token1Price)
-                        };
-                    }
-                    throw new Error("Không tìm thấy pool COT/MATIC trên QuickSwap.");
-                }
+                alert(`Đã thêm ${name} (${symbol}) vào ví đã kết nối qua WalletConnect!`);
             } catch (error) {
-                console.error("Lỗi tìm pool COT/MATIC:", error.message);
-                return null;
+                console.error("Lỗi thêm token vào ví:", error);
+                alert("Không thể thêm token. Vui lòng kiểm tra ví của bạn.");
             }
+
+            document.getElementById("custom-token-name").value = "";
+            document.getElementById("custom-token-address").value = "";
+            document.getElementById("custom-token-symbol").value = "";
+            document.getElementById("custom-token-logo").value = "";
         }
 
-        // Lấy giá MATIC từ CoinGecko
-        async function getMATICPrice() {
-            try {
-                const response = await fetch(COINGECKO_API);
-                const data = await response.json();
-                return {
-                    usd: data["matic-network"].usd,
-                    vnd: data["vietnamese-dong"].vnd
-                };
-            } catch (error) {
-                console.error("Lỗi lấy giá MATIC:", error);
-                return null;
-            }
-        }
-
-        // Cập nhật giá
-        async function updatePrice() {
-            document.getElementById("status").innerText = "Đang tải dữ liệu...";
-            const poolData = await findCOTPool();
-            const maticPrices = await getMATICPrice();
-
-            if (poolData && maticPrices) {
-                const cotPriceInMatic = poolData.token0Price;
-                const cotPriceInUSD = cotPriceInMatic * maticPrices.usd;
-                const cotPriceInVND = cotPriceInMatic * maticPrices.vnd;
-
-                // Cập nhật giá COT trong phần token
-                document.getElementById("cot-price").innerText = cotPriceInUSD.toFixed(6);
-                document.getElementById("cot-price-matic").innerText = cotPriceInMatic.toFixed(6);
-                document.getElementById("cot-price-usd").innerText = cotPriceInUSD.toFixed(6);
-                document.getElementById("cot-price-vnd").innerText = cotPriceInVND.toLocaleString() + " VNĐ";
-                document.getElementById("status").innerText = "Cập nhật thành công!";
-
-                // Giả lập giá PIX và TIN (do không có pool)
-                document.getElementById("pix-price").innerText = "0.01"; // Giả lập giá PIX
-                document.getElementById("tin-price").innerText = "0.02"; // Giả lập giá TIN
-
-                priceHistory.push(cotPriceInUSD);
-                if (priceHistory.length > 10) priceHistory.shift();
-                updateChart();
-            } else {
-                document.getElementById("cot-price").innerText = "Lỗi";
-                document.getElementById("cot-price-matic").innerText = "Lỗi";
-                document.getElementById("cot-price-usd").innerText = "Lỗi";
-                document.getElementById("cot-price-vnd").innerText = "Lỗi";
-                document.getElementById("pix-price").innerText = "Lỗi";
-                document.getElementById("tin-price").innerText = "Lỗi";
-                document.getElementById("status").innerText = "Lỗi: Kiểm tra kết nối hoặc dữ liệu pool.";
-            }
-        }
-
-        function updateChart() {
-            const ctx = document.getElementById("chart").getContext("2d");
-            if (chartInstance) chartInstance.destroy();
-            chartInstance = new Chart(ctx, {
-                type: "line",
-                data: {
-                    labels: priceHistory.map((_, i) => i + 1),
-                    datasets: [{
-                        label: "Giá COT/USD",
-                        data: priceHistory,
-                        borderColor: "orange",
-                        fill: false,
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: { y: { beginAtZero: false, title: { display: true, text: "USD" } } },
-                    plugins: { legend: { labels: { color: "white" } } }
-                }
-            });
-        }
-
-        // Cập nhật tự động mỗi 30 giây
-        setInterval(() => {
-            updatePrice();
-        }, 30000);
-
-        // Tải lần đầu khi trang mở
         window.onload = () => {
-            connectWallet();
-            updatePrice();
+            // Không tự động kết nối
         };
     </script>
 </body>
