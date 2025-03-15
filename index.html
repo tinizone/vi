@@ -40,8 +40,8 @@
 
     <!-- Thư viện ethers.js -->
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.0/dist/ethers.umd.min.js"></script>
-    <!-- Web3Modal với CDN mới -->
-    <script src="https://cdn.jsdelivr.net/npm/@web3modal/ethers@3.5.4/dist/index.js" onload="onWeb3ModalLoaded()" onerror="onWeb3ModalError()"></script>
+    <!-- Web3Modal với CDN chính và fallback -->
+    <script src="https://cdn.jsdelivr.net/npm/@web3modal/ethers@3.5.4/dist/index.js" id="web3modal-script" onload="onWeb3ModalLoaded()" onerror="loadWeb3ModalFallback()"></script>
 
     <script>
         let provider, signer, account, modal;
@@ -50,7 +50,7 @@
         function onWeb3ModalLoaded() {
             try {
                 if (!window.Web3Modal) {
-                    throw new Error("Thư viện Web3Modal không khả dụng sau khi tải từ CDN.");
+                    throw new Error("Thư viện Web3Modal không khả dụng sau khi tải từ CDN chính.");
                 }
                 modal = new window.Web3Modal.default({
                     projectId: "71ea15e324540c729b0528f5e9df30f3",
@@ -69,9 +69,15 @@
             }
         }
 
-        // Xử lý khi Web3Modal tải thất bại
-        function onWeb3ModalError() {
-            alert("⚠️ Lỗi tải thư viện Web3Modal từ CDN. Kiểm tra kết nối internet hoặc thử lại sau. CDN: https://cdn.jsdelivr.net/npm/@web3modal/ethers@3.5.4/dist/index.js");
+        // Fallback nếu CDN chính thất bại
+        function loadWeb3ModalFallback() {
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = "https://unpkg.com/@web3modal/ethers@3.5.4/dist/index.js";
+            fallbackScript.onload = onWeb3ModalLoaded;
+            fallbackScript.onerror = () => {
+                alert("⚠️ Lỗi tải thư viện Web3Modal từ cả hai CDN. Kiểm tra kết nối internet hoặc liên hệ hỗ trợ.");
+            };
+            document.body.appendChild(fallbackScript);
         }
 
         async function connectWallet() {
