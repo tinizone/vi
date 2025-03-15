@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kết Nối Ví & Thêm Token</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #222; color: white; }
-        h1 { color: #ff9800; margin-bottom: 20px; }
-        button { background: #ff9800; color: white; border: none; padding: 8px 16px; cursor: pointer; margin: 5px; border-radius: 4px; }
+        body { font-family: Arial, sans-serif; text-align: center; padding: 10px; background: #222; color: white; margin: 0; }
+        h1 { color: #ff9800; font-size: 24px; margin: 10px 0; }
+        button { background: #ff9800; color: white; border: none; padding: 8px 16px; cursor: pointer; margin: 5px; border-radius: 4px; font-size: 14px; }
         button:hover { background: #e68a00; }
-        #wallet-address { margin: 15px 0; font-size: 16px; color: #00ff00; word-break: break-all; }
-        .token { margin: 10px 0; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .token a { color: #00ff00; text-decoration: none; }
+        #wallet-address { margin: 10px 0; font-size: 14px; color: #00ff00; word-break: break-all; padding: 0 10px; }
+        .token { margin: 8px 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
+        .token a { color: #00ff00; text-decoration: none; font-size: 12px; }
         .token a:hover { text-decoration: underline; }
         .copy-btn { background: #555; font-size: 12px; padding: 4px 8px; }
         .copy-btn:hover { background: #777; }
@@ -61,23 +61,24 @@
 
         async function connectWallet() {
             try {
-                console.log("Đang kết nối ví...");
                 const instance = await modal.connect();
-                console.log("Provider nhận được:", instance);
+                if (!instance) throw new Error("Không nhận được provider từ WalletConnect.");
                 provider = new ethers.BrowserProvider(instance);
                 signer = await provider.getSigner();
                 account = await signer.getAddress();
                 document.getElementById("wallet-address").innerText = `✅ Đã kết nối: ${account}`;
                 await switchToPolygon();
             } catch (error) {
-                console.error("Chi tiết lỗi kết nối ví:", error);
-                alert("⚠️ Lỗi kết nối ví! Kiểm tra console để biết chi tiết.");
+                let errorMsg = "⚠️ Lỗi kết nối ví: ";
+                if (error.code === "USER_REJECTED_REQUEST") errorMsg += "Bạn đã từ chối kết nối.";
+                else if (error.message) errorMsg += error.message;
+                else errorMsg += "Không rõ nguyên nhân. Đảm bảo bạn có ví như MetaMask/Trust Wallet và kết nối internet.";
+                alert(errorMsg);
             }
         }
 
         async function switchToPolygon() {
             try {
-                console.log("Đang chuyển sang Polygon...");
                 await provider.send("wallet_switchEthereumChain", [{ chainId: "0x89" }]);
             } catch (switchError) {
                 if (switchError.code === 4902) {
@@ -89,8 +90,7 @@
                         blockExplorerUrls: ["https://polygonscan.com"]
                     }]);
                 } else {
-                    console.error("Lỗi chuyển mạng:", switchError);
-                    alert("⚠️ Không thể chuyển sang Polygon.");
+                    alert("⚠️ Lỗi chuyển mạng: " + (switchError.message || "Không rõ nguyên nhân."));
                 }
             }
         }
@@ -101,7 +101,6 @@
                 return;
             }
             try {
-                console.log(`Đang thêm ${tokenSymbol}...`);
                 const wasAdded = await provider.send("wallet_watchAsset", {
                     type: "ERC20",
                     options: { 
@@ -112,10 +111,9 @@
                     }
                 });
                 if (wasAdded) alert(`✅ ${tokenSymbol} đã được thêm!`);
-                else alert(`❌ Người dùng từ chối thêm ${tokenSymbol}.`);
+                else alert(`❌ Bạn đã từ chối thêm ${tokenSymbol}.`);
             } catch (error) {
-                console.error("Lỗi thêm token:", error);
-                alert("⚠️ Lỗi khi thêm token!");
+                alert("⚠️ Lỗi khi thêm token: " + (error.message || "Không rõ nguyên nhân."));
             }
         }
 
@@ -135,8 +133,7 @@
             navigator.clipboard.writeText(address).then(() => {
                 alert("✅ Đã sao chép địa chỉ: " + address);
             }).catch(err => {
-                console.error("Lỗi sao chép:", err);
-                alert("⚠️ Lỗi khi sao chép!");
+                alert("⚠️ Lỗi khi sao chép: " + (err.message || "Không rõ nguyên nhân."));
             });
         }
     </script>
