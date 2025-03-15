@@ -44,48 +44,22 @@
     <script>
         let provider, signer, account;
 
-        // Kiểm tra và tái kết nối với MetaMask
-        async function checkAndReconnectMetaMask() {
-            if (!window.ethereum) {
-                alert("⚠️ MetaMask Extension không được cài đặt. Vui lòng cài MetaMask trên Kiwi Browser và thử lại.");
-                return false;
-            }
-            try {
-                // Thử ping MetaMask nhiều lần để giữ trạng thái
-                for (let i = 0; i < 2; i++) {
-                    await window.ethereum.request({ method: 'eth_chainId' });
-                    await new Promise(resolve => setTimeout(resolve, 300)); // Đợi 0.3s giữa các lần
-                }
-                return true;
-            } catch (error) {
-                alert("⚠️ Không thể kết nối với MetaMask. Vui lòng mở MetaMask Extension (Menu -> Extensions -> MetaMask) và thử lại.");
-                return false;
-            }
-        }
-
         // Kết nối ví MetaMask
         async function connectWallet() {
-            if (!await checkAndReconnectMetaMask()) return;
             try {
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 provider = new ethers.BrowserProvider(window.ethereum);
                 signer = await provider.getSigner();
                 account = await signer.getAddress();
                 document.getElementById("wallet-address").innerText = `✅ Đã kết nối: ${account}`;
-                alert("✅ Đã kết nối thành công! Đợi giao diện extension tự đóng và quay lại trang, sau đó bạn có thể thêm token.");
                 await switchToPolygon();
             } catch (error) {
-                let errorMsg = "⚠️ Lỗi kết nối ví: ";
-                if (error.code === 4001) errorMsg += "Bạn đã từ chối kết nối.";
-                else if (error.message) errorMsg += error.message;
-                else errorMsg += "Không rõ nguyên nhân. Đảm bảo MetaMask Extension được cài trên Kiwi Browser.";
-                alert(errorMsg);
+                document.getElementById("wallet-address").innerText = `❌ Lỗi kết nối: ${error.message || 'Không rõ nguyên nhân'}`;
             }
         }
 
-        // Chuyển sang mạng Polygon
+        // Chuyển sang mạng Polygon với symbol POL
         async function switchToPolygon() {
-            if (!await checkAndReconnectMetaMask()) return;
             try {
                 await window.ethereum.request({
                     method: 'wallet_switchEthereumChain',
@@ -99,12 +73,12 @@
                             chainId: '0x89',
                             chainName: 'Polygon Mainnet',
                             rpcUrls: ['https://polygon-rpc.com'],
-                            nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+                            nativeCurrency: { name: 'POL', symbol: 'POL', decimals: 18 },
                             blockExplorerUrls: ['https://polygonscan.com']
                         }]
                     });
                 } else {
-                    alert("⚠️ Lỗi chuyển mạng: " + (switchError.message || "Không rõ nguyên nhân.") + "\nVui lòng mở MetaMask Extension để xác nhận thủ công.");
+                    document.getElementById("wallet-address").innerText += ` | Lỗi mạng: ${switchError.message || 'Không rõ nguyên nhân'}`;
                 }
             }
         }
@@ -112,15 +86,11 @@
         // Thêm token vào MetaMask
         async function addToken(tokenAddress, tokenSymbol, tokenDecimals, tokenImage) {
             if (!account) {
-                alert("⚠️ Hãy kết nối ví MetaMask trước!");
+                document.getElementById("wallet-address").innerText = "❌ Hãy kết nối ví MetaMask trước!";
                 return;
             }
-            if (!await checkAndReconnectMetaMask()) return;
             try {
-                // "Đánh thức" MetaMask trước khi thêm token
-                await window.ethereum.request({ method: 'eth_chainId' });
-
-                const wasAdded = await window.ethereum.request({
+                await window.ethereum.request({
                     method: 'wallet_watchAsset',
                     params: {
                         type: 'ERC20',
@@ -128,44 +98,33 @@
                             address: tokenAddress,
                             symbol: tokenSymbol,
                             decimals: tokenDecimals,
-                            image: tokenImage
+                            image: tokenImage || "" // Bỏ logo nếu có vấn đề
                         }
                     }
                 });
-
-                // Kiểm tra sau 1 giây nếu không tự chuyển hướng sang extension
-                let checkTimeout = setTimeout(() => {
-                    if (!wasAdded) {
-                        alert(`⚠️ Yêu cầu thêm ${tokenSymbol} đã được gửi nhưng không tự chuyển hướng sang MetaMask Extension. Vui lòng mở MetaMask Extension trên Kiwi Browser (Menu -> Extensions -> MetaMask) để xác nhận thủ công. Nếu vấn đề tiếp diễn, hãy thử dùng trình duyệt tích hợp của MetaMask Mobile.`);
-                    }
-                }, 1000);
-
-                if (wasAdded) {
-                    clearTimeout(checkTimeout);
-                    alert(`✅ ${tokenSymbol} đã được thêm!`);
-                }
+                document.getElementById("wallet-address").innerText += ` | Đã gửi yêu cầu thêm ${tokenSymbol}. Vui lòng xác nhận trong MetaMask.`;
             } catch (error) {
-                alert("⚠️ Lỗi khi thêm token: " + (error.message || "Không rõ nguyên nhân.") + "\nVui lòng mở MetaMask Extension trên Kiwi Browser (Menu -> Extensions -> MetaMask) để xác nhận thủ công.");
+                document.getElementById("wallet-address").innerText += ` | Lỗi thêm token: ${error.message || 'Không rõ nguyên nhân'}`;
             }
         }
 
         function addCotienToken() {
-            addToken("0x0d4013b4e2e2f89171bbe956da995757fb5a6678", "COT", 18, "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png");
+            addToken("0x0d4013b4e2e2f89171bbe956da995757fb5a6678", "COT", 18, "");
         }
 
         function addPixalalaToken() {
-            addToken("0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7", "PIX", 18, "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png");
+            addToken("0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7", "PIX", 18, "");
         }
 
         function addTinizoneToken() {
-            addToken("0xe7d8c8818106a565980315675d7adcb1d8ab1318", "TIN", 18, "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png");
+            addToken("0xe7d8c8818106a565980315675d7adcb1d8ab1318", "TIN", 18, "");
         }
 
         function copyAddress(address) {
             navigator.clipboard.writeText(address).then(() => {
-                alert("✅ Đã sao chép địa chỉ: " + address);
-            }).catch(err => {
-                alert("⚠️ Lỗi khi sao chép: " + (error.message || "Không rõ nguyên nhân."));
+                document.getElementById("wallet-address").innerText += " | Đã sao chép địa chỉ!";
+            }).catch(() => {
+                document.getElementById("wallet-address").innerText += " | Lỗi sao chép!";
             });
         }
     </script>
