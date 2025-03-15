@@ -30,7 +30,9 @@
 <body>
     <h1>Ví Tinizone</h1>
     <button onclick="connectWallet()">Kết nối ví</button>
-    <button onclick="refreshWallet()">Refresh</button>
+    <button onclick="addTokenCotien()">Thêm Cotien (COT)</button>
+    <button onclick="addTokenPixalala()">Thêm Pixalala (PIX)</button>
+    <button onclick="addTokenTinizone()">Thêm Tinizone (TIN)</button>
     <div id="wallet-address">Chưa kết nối</div>
 
     <!-- Thư viện Web3.js -->
@@ -43,7 +45,6 @@
         async function connectWallet() {
             if (window.ethereum) {
                 try {
-                    // Yêu cầu kết nối ví
                     accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
                     web3 = new Web3(window.ethereum);
                     document.getElementById("wallet-address").innerText = `Địa chỉ ví: ${accounts[0]}`;
@@ -56,12 +57,57 @@
             }
         }
 
-        async function refreshWallet() {
-            if (web3 && accounts.length > 0) {
-                document.getElementById("wallet-address").innerText = `Địa chỉ ví: ${accounts[0]}`;
-            } else {
-                document.getElementById("wallet-address").innerText = "Chưa kết nối";
+        async function addToken(tokenAddress, tokenSymbol, tokenDecimals, tokenImage) {
+            try {
+                const wasAdded = await window.ethereum.request({
+                    method: "wallet_watchAsset",
+                    params: {
+                        type: "ERC20",
+                        options: {
+                            address: tokenAddress,
+                            symbol: tokenSymbol,
+                            decimals: tokenDecimals,
+                            image: tokenImage,
+                        },
+                    },
+                });
+
+                if (wasAdded) {
+                    alert(`Đã thêm token ${tokenSymbol} vào MetaMask!`);
+                } else {
+                    alert(`Người dùng từ chối thêm token ${tokenSymbol}.`);
+                }
+            } catch (error) {
+                console.error("Lỗi thêm token:", error);
+                alert(`Lỗi: ${error.message}`);
             }
+        }
+
+        function addTokenCotien() {
+            addToken(
+                "0x0d4013b4e2e2f89171bbe956da995757fb5a6678",
+                "COT",
+                18,
+                "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png"
+            );
+        }
+
+        function addTokenPixalala() {
+            addToken(
+                "0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7",
+                "PIX",
+                18,
+                "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png"
+            );
+        }
+
+        function addTokenTinizone() {
+            addToken(
+                "0xe7d8c8818106a565980315675d7adcb1d8ab1318",
+                "TIN",
+                18,
+                "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png"
+            );
         }
     </script>
 </body>
