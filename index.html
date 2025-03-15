@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kết Nối Ví & Thêm Token</title>
+    <title>Kết Nối Ví MetaMask & Thêm Token</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; padding: 10px; background: #222; color: white; margin: 0; }
         h1 { color: #ff9800; font-size: 24px; margin: 10px 0; }
@@ -18,8 +18,8 @@
     </style>
 </head>
 <body>
-    <h1>Kết Nối Ví & Thêm Token</h1>
-    <button onclick="connectWallet()">🔗 Kết Nối Ví</button>
+    <h1>Kết Nối Ví MetaMask & Thêm Token</h1>
+    <button onclick="connectWallet()">🔗 Kết Nối MetaMask</button>
     <div id="wallet-address">Chưa kết nối ví...</div>
 
     <div class="token">
@@ -40,99 +40,74 @@
 
     <!-- Thư viện ethers.js -->
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.0/dist/ethers.umd.min.js"></script>
-    <!-- Web3Modal với CDN chính và fallback -->
-    <script src="https://cdn.jsdelivr.net/npm/@web3modal/ethers@3.5.4/dist/index.js" id="web3modal-script" onload="onWeb3ModalLoaded()" onerror="loadWeb3ModalFallback()"></script>
 
     <script>
-        let provider, signer, account, modal;
+        let provider, signer, account;
 
-        // Xử lý khi Web3Modal tải thành công
-        function onWeb3ModalLoaded() {
-            try {
-                if (!window.Web3Modal) {
-                    throw new Error("Thư viện Web3Modal không khả dụng sau khi tải từ CDN chính.");
-                }
-                modal = new window.Web3Modal.default({
-                    projectId: "71ea15e324540c729b0528f5e9df30f3",
-                    walletConnectVersion: 2,
-                    chains: [{
-                        chainId: "0x89",
-                        chainName: "Polygon Mainnet",
-                        rpcUrls: ["https://polygon-rpc.com"],
-                        nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
-                        blockExplorerUrls: ["https://polygonscan.com"]
-                    }]
-                });
-                alert("Thư viện Web3Modal đã tải thành công. Nhấn 'Kết Nối Ví' để tiếp tục.");
-            } catch (error) {
-                alert("⚠️ Lỗi khởi tạo Web3Modal: " + (error.message || "Không rõ nguyên nhân."));
-            }
-        }
-
-        // Fallback nếu CDN chính thất bại
-        function loadWeb3ModalFallback() {
-            const fallbackScript = document.createElement('script');
-            fallbackScript.src = "https://unpkg.com/@web3modal/ethers@3.5.4/dist/index.js";
-            fallbackScript.onload = onWeb3ModalLoaded;
-            fallbackScript.onerror = () => {
-                alert("⚠️ Lỗi tải thư viện Web3Modal từ cả hai CDN. Kiểm tra kết nối internet hoặc liên hệ hỗ trợ.");
-            };
-            document.body.appendChild(fallbackScript);
-        }
-
+        // Kết nối ví MetaMask
         async function connectWallet() {
             try {
-                if (!modal) {
-                    throw new Error("Web3Modal chưa được khởi tạo. Thư viện chưa tải hoặc Project ID không hợp lệ.");
+                if (!window.ethereum) {
+                    alert("⚠️ MetaMask không được cài đặt. Vui lòng cài MetaMask Mobile và thử lại.");
+                    return;
                 }
-                const instance = await modal.connect();
-                if (!instance) throw new Error("Không nhận được provider từ WalletConnect.");
-                provider = new ethers.BrowserProvider(instance);
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                provider = new ethers.BrowserProvider(window.ethereum);
                 signer = await provider.getSigner();
                 account = await signer.getAddress();
                 document.getElementById("wallet-address").innerText = `✅ Đã kết nối: ${account}`;
                 await switchToPolygon();
             } catch (error) {
                 let errorMsg = "⚠️ Lỗi kết nối ví: ";
-                if (error.code === "USER_REJECTED_REQUEST") errorMsg += "Bạn đã từ chối kết nối.";
-                else if (error.code === "INVALID_PROJECT_ID") errorMsg += "Project ID không hợp lệ. Kiểm tra lại trên WalletConnect Cloud.";
+                if (error.code === 4001) errorMsg += "Bạn đã từ chối kết nối.";
                 else if (error.message) errorMsg += error.message;
-                else errorMsg += "Không rõ nguyên nhân. Đảm bảo bạn có ví như MetaMask/Trust Wallet và kết nối internet.";
+                else errorMsg += "Không rõ nguyên nhân. Đảm bảo MetaMask Mobile được cài và kết nối internet ổn định.";
                 alert(errorMsg);
             }
         }
 
+        // Chuyển sang mạng Polygon
         async function switchToPolygon() {
             try {
-                await provider.send("wallet_switchEthereumChain", [{ chainId: "0x89" }]);
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x89' }] // Polygon Mainnet
+                });
             } catch (switchError) {
                 if (switchError.code === 4902) {
-                    await provider.send("wallet_addEthereumChain", [{
-                        chainId: "0x89",
-                        chainName: "Polygon Mainnet",
-                        rpcUrls: ["https://polygon-rpc.com"],
-                        nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
-                        blockExplorerUrls: ["https://polygonscan.com"]
-                    }]);
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: '0x89',
+                            chainName: 'Polygon Mainnet',
+                            rpcUrls: ['https://polygon-rpc.com'],
+                            nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+                            blockExplorerUrls: ['https://polygonscan.com']
+                        }]
+                    });
                 } else {
                     alert("⚠️ Lỗi chuyển mạng: " + (switchError.message || "Không rõ nguyên nhân."));
                 }
             }
         }
 
+        // Thêm token vào MetaMask
         async function addToken(tokenAddress, tokenSymbol, tokenDecimals, tokenImage) {
             if (!account) {
-                alert("⚠️ Hãy kết nối ví trước!");
+                alert("⚠️ Hãy kết nối ví MetaMask trước!");
                 return;
             }
             try {
-                const wasAdded = await provider.send("wallet_watchAsset", {
-                    type: "ERC20",
-                    options: { 
-                        address: tokenAddress, 
-                        symbol: tokenSymbol, 
-                        decimals: tokenDecimals, 
-                        image: tokenImage 
+                const wasAdded = await window.ethereum.request({
+                    method: 'wallet_watchAsset',
+                    params: {
+                        type: 'ERC20',
+                        options: {
+                            address: tokenAddress,
+                            symbol: tokenSymbol,
+                            decimals: tokenDecimals,
+                            image: tokenImage
+                        }
                     }
                 });
                 if (wasAdded) alert(`✅ ${tokenSymbol} đã được thêm!`);
