@@ -47,11 +47,12 @@
                 walletConnectProvider = new WalletConnectProvider.default({
                     projectId: "71ea15e324540c729b0528f5e9df30f3", // Thay bằng Project ID thực của bạn
                     rpc: {
-                        137: "https://polygon-rpc.com" // RPC công khai của Polygon Mainnet
+                        137: "https://polygon-mainnet.infura.io/v3/885286775969403e9ce7f593d96c446a" // Thay bằng API RPC của bạn
                     },
-                    qrcode: true, // Hiển thị QR code nếu không tự mở MetaMask
+                    chainId: 137, // Polygon Mainnet
+                    qrcode: true,
                     qrcodeModalOptions: {
-                        mobileLinks: ["metamask", "trust"] // Hỗ trợ MetaMask & Trust Wallet trên mobile
+                        mobileLinks: ["metamask", "trust"]
                     }
                 });
 
@@ -60,7 +61,6 @@
                 const accounts = await web3.eth.getAccounts();
                 document.getElementById("wallet-address").innerText = `Địa chỉ ví: ${accounts[0]}`;
 
-                // Lắng nghe sự kiện ngắt kết nối
                 walletConnectProvider.on("disconnect", () => {
                     document.getElementById("wallet-address").innerText = "Đã ngắt kết nối ví!";
                 });
