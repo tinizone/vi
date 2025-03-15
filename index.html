@@ -46,10 +46,14 @@
     <script>
         let provider, signer, account;
 
+        // Hiển thị user agent để debug
+        document.getElementById("wallet-address").innerText += ` | User Agent: ${navigator.userAgent}`;
+
         // Kiểm tra trình duyệt có phải là Kiwi Browser không
         function isKiwiBrowser() {
             const userAgent = navigator.userAgent.toLowerCase();
-            return userAgent.includes("kiwi");
+            // Kiểm tra chuỗi "kiwi" hoặc các đặc điểm của Kiwi Browser
+            return userAgent.includes("kiwi") || (userAgent.includes("chrome") && userAgent.includes("android") && !userAgent.includes("edg") && !userAgent.includes("samsung"));
         }
 
         // Kích hoạt nút "Thêm Token" nếu là Kiwi Browser
