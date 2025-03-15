@@ -40,15 +40,16 @@
 
     <!-- Thư viện ethers.js -->
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.0/dist/ethers.umd.min.js"></script>
-    <!-- Web3Modal và WalletConnect -->
-    <script src="https://unpkg.com/@web3modal/ethers/dist/index.js"></script>
+    <!-- Web3Modal -->
+    <script src="https://unpkg.com/@web3modal/ethers@3.5.4/dist/index.js"></script>
 
     <script>
         let provider, signer, account;
-        const PROJECT_ID = "71ea15e324540c729b0528f5e9df30f3"; // Project ID đã được thêm
 
+        // Cấu hình Web3Modal
         const modal = new window.Web3Modal.default({
-            projectId: PROJECT_ID,
+            projectId: "71ea15e324540c729b0528f5e9df30f3",
+            walletConnectVersion: 2,
             chains: [{
                 chainId: "0x89",
                 chainName: "Polygon Mainnet",
@@ -60,20 +61,23 @@
 
         async function connectWallet() {
             try {
+                console.log("Đang kết nối ví...");
                 const instance = await modal.connect();
+                console.log("Provider nhận được:", instance);
                 provider = new ethers.BrowserProvider(instance);
                 signer = await provider.getSigner();
                 account = await signer.getAddress();
                 document.getElementById("wallet-address").innerText = `✅ Đã kết nối: ${account}`;
                 await switchToPolygon();
             } catch (error) {
-                console.error("Lỗi kết nối ví:", error);
-                alert("⚠️ Lỗi kết nối ví! Hãy thử lại.");
+                console.error("Chi tiết lỗi kết nối ví:", error);
+                alert("⚠️ Lỗi kết nối ví! Kiểm tra console để biết chi tiết.");
             }
         }
 
         async function switchToPolygon() {
             try {
+                console.log("Đang chuyển sang Polygon...");
                 await provider.send("wallet_switchEthereumChain", [{ chainId: "0x89" }]);
             } catch (switchError) {
                 if (switchError.code === 4902) {
@@ -97,6 +101,7 @@
                 return;
             }
             try {
+                console.log(`Đang thêm ${tokenSymbol}...`);
                 const wasAdded = await provider.send("wallet_watchAsset", {
                     type: "ERC20",
                     options: { 
