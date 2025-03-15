@@ -49,7 +49,10 @@
                     rpc: {
                         137: "https://polygon-rpc.com" // RPC công khai của Polygon Mainnet
                     },
-                    qrcodeModal: true // Hiển thị QR code trên mobile
+                    qrcode: true, // Hiển thị QR code nếu không tự mở MetaMask
+                    qrcodeModalOptions: {
+                        mobileLinks: ["metamask", "trust"] // Hỗ trợ MetaMask & Trust Wallet trên mobile
+                    }
                 });
 
                 await walletConnectProvider.enable();
