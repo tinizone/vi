@@ -63,7 +63,7 @@
             try {
                 await window.ethereum.request({
                     method: 'wallet_switchEthereumChain',
-                    params: [{ chainId: '0x89' }] // Polygon Mainnet
+                    params: [{ chainId: '0x89' }]
                 });
             } catch (switchError) {
                 if (switchError.code === 4902) {
@@ -84,7 +84,7 @@
         }
 
         // Thêm token vào MetaMask
-        async function addToken(tokenAddress, tokenSymbol, tokenDecimals, tokenImage) {
+        async function addToken(tokenAddress, tokenSymbol, tokenDecimals) {
             if (!account) {
                 document.getElementById("wallet-address").innerText = "❌ Hãy kết nối ví MetaMask trước!";
                 return;
@@ -97,27 +97,26 @@
                         options: {
                             address: tokenAddress,
                             symbol: tokenSymbol,
-                            decimals: tokenDecimals,
-                            image: tokenImage || "" // Bỏ logo nếu có vấn đề
+                            decimals: tokenDecimals
                         }
                     }
                 });
-                document.getElementById("wallet-address").innerText += ` | Đã gửi yêu cầu thêm ${tokenSymbol}. Vui lòng xác nhận trong MetaMask.`;
+                document.getElementById("wallet-address").innerText += ` | Đã gửi yêu cầu thêm ${tokenSymbol}.`;
             } catch (error) {
                 document.getElementById("wallet-address").innerText += ` | Lỗi thêm token: ${error.message || 'Không rõ nguyên nhân'}`;
             }
         }
 
         function addCotienToken() {
-            addToken("0x0d4013b4e2e2f89171bbe956da995757fb5a6678", "COT", 18, "");
+            addToken("0x0d4013b4e2e2f89171bbe956da995757fb5a6678", "COT", 18);
         }
 
         function addPixalalaToken() {
-            addToken("0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7", "PIX", 18, "");
+            addToken("0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7", "PIX", 18);
         }
 
         function addTinizoneToken() {
-            addToken("0xe7d8c8818106a565980315675d7adcb1d8ab1318", "TIN", 18, "");
+            addToken("0xe7d8c8818106a565980315675d7adcb1d8ab1318", "TIN", 18);
         }
 
         function copyAddress(address) {
