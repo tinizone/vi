@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kết Nối Ví - MetaMask & WalletConnect</title>
+    <title>Thêm Token Vào Ví MetaMask</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -24,63 +24,46 @@
             margin: 10px;
         }
         button:hover { background-color: #e68a00; }
-        #wallet-address { margin-top: 10px; }
     </style>
 </head>
 <body>
-    <h1>Kết Nối Ví</h1>
-    <button onclick="connectMetaMask()">Kết nối MetaMask</button>
-    <button onclick="connectWalletConnect()">Kết nối WalletConnect</button>
-    <div id="wallet-address"></div>
+    <h1>Thêm Token Vào Ví MetaMask</h1>
 
-    <!-- Thư viện Web3.js -->
-    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+    <button onclick="addToken('0x0d4013b4e2e2f89171bbe956da995757fb5a6678', 'COT', 18, 'https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png')">
+        Thêm Cotien (COT)
+    </button>
 
-    <!-- WalletConnect -->
-    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+    <button onclick="addToken('0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7', 'PIX', 18, 'https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png')">
+        Thêm Pixalala (PIX)
+    </button>
+
+    <button onclick="addToken('0xe7d8c8818106a565980315675d7adcb1d8ab1318', 'TIN', 18, 'https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png')">
+        Thêm Tinizone (TIN)
+    </button>
 
     <script>
-        let web3;
-        let walletConnectProvider;
-
-        // Kết nối MetaMask
-        async function connectMetaMask() {
-            if (window.ethereum) {
-                try {
-                    await window.ethereum.request({ method: "eth_requestAccounts" });
-                    web3 = new Web3(window.ethereum);
-                    const accounts = await web3.eth.getAccounts();
-                    document.getElementById("wallet-address").innerText = `Ví MetaMask: ${accounts[0]}`;
-                } catch (error) {
-                    console.error("Lỗi MetaMask:", error);
-                    alert("Kết nối MetaMask thất bại!");
-                }
-            } else {
-                alert("Vui lòng cài MetaMask để sử dụng.");
-            }
-        }
-
-        // Kết nối WalletConnect
-        async function connectWalletConnect() {
+        async function addToken(tokenAddress, tokenSymbol, tokenDecimals, tokenImage) {
             try {
-                walletConnectProvider = new WalletConnectProvider.default({
-                    rpc: { 137: "https://polygon-rpc.com" }, // RPC miễn phí của Polygon
-                    chainId: 137,
-                    qrcode: true, // Hiển thị QR code khi kết nối
+                const wasAdded = await window.ethereum.request({
+                    method: "wallet_watchAsset",
+                    params: {
+                        type: "ERC20",
+                        options: {
+                            address: tokenAddress,
+                            symbol: tokenSymbol,
+                            decimals: tokenDecimals,
+                            image: tokenImage,
+                        },
+                    },
                 });
 
-                await walletConnectProvider.enable();
-                web3 = new Web3(walletConnectProvider);
-                const accounts = await web3.eth.getAccounts();
-                document.getElementById("wallet-address").innerText = `Ví WalletConnect: ${accounts[0]}`;
-
-                walletConnectProvider.on("disconnect", () => {
-                    document.getElementById("wallet-address").innerText = "Đã ngắt kết nối ví!";
-                });
-
+                if (wasAdded) {
+                    alert(`Token ${tokenSymbol} đã được thêm vào MetaMask!`);
+                } else {
+                    alert(`Người dùng từ chối thêm token ${tokenSymbol}.`);
+                }
             } catch (error) {
-                console.error("Lỗi WalletConnect:", error);
-                alert("Kết nối WalletConnect thất bại!");
+                alert("Lỗi thêm token: " + error.message);
             }
         }
     </script>
