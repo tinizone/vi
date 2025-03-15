@@ -9,35 +9,40 @@
         h1 { color: #ff9800; }
         button { background-color: #ff9800; color: white; border: none; padding: 10px 20px; cursor: pointer; margin: 10px; }
         button:hover { background-color: #e68a00; }
-        #wallet-address { margin-top: 10px; }
+        #wallet-address { margin-top: 10px; font-size: 16px; color: #00ff00; }
     </style>
 </head>
 <body>
     <h1>Kết Nối MetaMask & Thêm Token</h1>
-    <button onclick="connectWallet()">Kết Nối Ví</button>
-    <button onclick="addCotienToken()">Thêm Cotien (COT)</button>
-    <button onclick="addPixalalaToken()">Thêm Pixalala (PIX)</button>
-    <button onclick="addTinizoneToken()">Thêm Tinizone (TIN)</button>
-    <div id="wallet-address"></div>
+    <button onclick="connectWallet()">🔗 Kết Nối Ví</button>
+    <button onclick="addCotienToken()">➕ Thêm Cotien (COT)</button>
+    <button onclick="addPixalalaToken()">➕ Thêm Pixalala (PIX)</button>
+    <button onclick="addTinizoneToken()">➕ Thêm Tinizone (TIN)</button>
+    <div id="wallet-address">Chưa kết nối ví...</div>
 
     <script>
-        let account;
+        let account = null;
 
         async function connectWallet() {
             if (window.ethereum) {
                 try {
                     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                     account = accounts[0];
-                    document.getElementById("wallet-address").innerText = `Đã kết nối: ${account}`;
+                    document.getElementById("wallet-address").innerText = `✅ Đã kết nối: ${account}`;
                 } catch (error) {
                     console.error("Lỗi kết nối:", error);
+                    alert("Lỗi kết nối MetaMask! Hãy thử lại.");
                 }
             } else {
-                alert("Hãy mở trang này trong trình duyệt MetaMask!");
+                alert("⚠️ Bạn cần mở trang này trong trình duyệt MetaMask!");
             }
         }
 
         async function addToken(tokenAddress, tokenSymbol, tokenDecimals, tokenImage) {
+            if (!account) {
+                alert("⚠️ Hãy kết nối ví trước!");
+                return;
+            }
             try {
                 const wasAdded = await window.ethereum.request({
                     method: 'wallet_watchAsset',
@@ -52,12 +57,13 @@
                     },
                 });
                 if (wasAdded) {
-                    alert(`${tokenSymbol} đã được thêm vào ví!`);
+                    alert(`✅ ${tokenSymbol} đã được thêm vào ví!`);
                 } else {
-                    alert(`Người dùng từ chối thêm ${tokenSymbol}.`);
+                    alert(`❌ Người dùng từ chối thêm ${tokenSymbol}.`);
                 }
             } catch (error) {
                 console.error("Lỗi thêm token:", error);
+                alert("⚠️ Lỗi khi thêm token! Hãy thử lại.");
             }
         }
 
