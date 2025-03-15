@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kết Nối Ví MetaMask & Thêm Token</title>
+    <title>Kết Nối Ví Trust Wallet & Thêm Tinizone Point</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; padding: 10px; background: #222; color: white; margin: 0; }
         h1 { color: #ff9800; font-size: 24px; margin: 10px 0; }
@@ -19,8 +19,8 @@
     </style>
 </head>
 <body>
-    <h1>Kết Nối Ví MetaMask & Thêm Token</h1>
-    <button onclick="connectWallet()">🔗 Kết Nối MetaMask</button>
+    <h1>Kết Nối Ví Trust Wallet & Thêm Tinizone Point</h1>
+    <button onclick="connectWallet()">🔗 Kết Nối Trust Wallet</button>
     <div id="wallet-address">Chưa kết nối ví...</div>
 
     <div class="token">
@@ -45,11 +45,11 @@
     <script>
         let provider, signer, account;
 
-        // Kết nối ví MetaMask
+        // Kết nối ví Trust Wallet
         async function connectWallet() {
             try {
                 if (!window.ethereum) {
-                    document.getElementById("wallet-address").innerText = "❌ MetaMask không được cài đặt!";
+                    document.getElementById("wallet-address").innerText = "❌ Trust Wallet không được cài đặt hoặc không hỗ trợ kết nối qua trình duyệt!";
                     return;
                 }
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
@@ -88,10 +88,10 @@
             }
         }
 
-        // Thêm token vào MetaMask
+        // Thêm token vào Trust Wallet
         async function addToken(tokenAddress, tokenSymbol, tokenDecimals, tokenImage) {
             if (!account) {
-                document.getElementById("wallet-address").innerText = "❌ Hãy kết nối ví MetaMask trước!";
+                document.getElementById("wallet-address").innerText = "❌ Hãy kết nối ví Trust Wallet trước!";
                 return;
             }
             try {
@@ -107,9 +107,9 @@
                         }
                     }
                 });
-                document.getElementById("wallet-address").innerText += ` | Đã gửi yêu cầu thêm ${tokenSymbol}.`;
+                document.getElementById("wallet-address").innerText += ` | Đã gửi yêu cầu thêm ${tokenSymbol}. Kiểm tra danh sách token trong Trust Wallet!`;
             } catch (error) {
-                document.getElementById("wallet-address").innerText += ` | Lỗi thêm token: ${error.message || 'Không rõ nguyên nhân'}`;
+                document.getElementById("wallet-address").innerText += ` | Lỗi thêm token: ${error.message || 'Không rõ nguyên nhân'}. Hãy thêm thủ công trong Trust Wallet.`;
             }
         }
 
