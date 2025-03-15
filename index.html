@@ -35,7 +35,9 @@
     <div class="token">
         <button onclick="addTinizoneToken()">➕ Thêm Tinizone (TIN)</button>
         <a href="https://polygonscan.com/token/0xe7d8c8818106a565980315675d7adcb1d8ab1318" target="_blank">Polygonscan</a>
-        <button class="copy-btn" onclick="copyAddress('0xe7d8c8818106a565980315675d7adcb1d8ab1318')">Copy</button>
+        <button class="copy-btn" onclick="copyAddress('
+
+0xe7d8c8818106a565980315675d7adcb1d8ab1318')">Copy</button>
     </div>
 
     <!-- Thư viện ethers.js -->
@@ -48,7 +50,7 @@
         async function connectWallet() {
             try {
                 if (!window.ethereum) {
-                    alert("⚠️ MetaMask không được cài đặt. Vui lòng cài MetaMask Mobile và thử lại.");
+                    alert("⚠️ MetaMask Extension không được cài đặt. Vui lòng cài MetaMask trên Kiwi Browser và thử lại.");
                     return;
                 }
                 await window.ethereum.request({ method: 'eth_requestAccounts' });
@@ -61,7 +63,7 @@
                 let errorMsg = "⚠️ Lỗi kết nối ví: ";
                 if (error.code === 4001) errorMsg += "Bạn đã từ chối kết nối.";
                 else if (error.message) errorMsg += error.message;
-                else errorMsg += "Không rõ nguyên nhân. Đảm bảo MetaMask Mobile được cài và kết nối internet ổn định.";
+                else errorMsg += "Không rõ nguyên nhân. Đảm bảo MetaMask Extension được cài trên Kiwi Browser.";
                 alert(errorMsg);
             }
         }
@@ -110,10 +112,13 @@
                         }
                     }
                 });
-                if (wasAdded) alert(`✅ ${tokenSymbol} đã được thêm!`);
-                else alert(`❌ Bạn đã từ chối thêm ${tokenSymbol}.`);
+                if (wasAdded) {
+                    alert(`✅ ${tokenSymbol} đã được thêm!`);
+                } else {
+                    alert(`⚠️ Vui lòng mở MetaMask Extension trên Kiwi Browser để xác nhận thêm ${tokenSymbol}.`);
+                }
             } catch (error) {
-                alert("⚠️ Lỗi khi thêm token: " + (error.message || "Không rõ nguyên nhân."));
+                alert("⚠️ Lỗi khi thêm token: " + (error.message || "Không rõ nguyên nhân.") + "\nVui lòng mở MetaMask Extension để xác nhận thủ công.");
             }
         }
 
