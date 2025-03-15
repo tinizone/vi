@@ -32,7 +32,7 @@
     <button onclick="connectWallet()">Kết nối ví qua WalletConnect</button>
     <div id="wallet-address"></div>
 
-    <!-- Web3.js -->
+    <!-- Thư viện Web3.js -->
     <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
     
     <!-- WalletConnect v2 -->
@@ -45,14 +45,10 @@
         async function connectWallet() {
             try {
                 walletConnectProvider = new WalletConnectProvider.default({
-                    projectId: "71ea15e324540c729b0528f5e9df30f3", // Thay bằng Project ID thực của bạn
-                    rpc: {
-                        137: "https://polygon-mainnet.infura.io/v3/885286775969403e9ce7f593d96c446a" // Thay bằng API RPC của bạn
-                    },
-                    chainId: 137, // Polygon Mainnet
-                    qrcode: true,
-                    qrcodeModalOptions: {
-                        mobileLinks: ["metamask", "trust"]
+                    projectId: "71ea15e324540c729b0528f5e9df30f3", // Thay bằng Project ID từ WalletConnect
+                    chains: [137], // Polygon Mainnet
+                    rpcMap: { 
+                        137: "https://polygon-mainnet.infura.io/v3/885286775969403e9ce7f593d96c446a" // Thay bằng Project ID từ Infura
                     }
                 });
 
