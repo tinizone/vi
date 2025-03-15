@@ -5,44 +5,67 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kết Nối Ví & Thêm Token</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background-color: #222; color: white; }
-        h1 { color: #ff9800; }
-        button { background-color: #ff9800; color: white; border: none; padding: 10px 20px; cursor: pointer; margin: 10px; }
-        button:hover { background-color: #e68a00; }
-        #wallet-address { margin-top: 10px; font-size: 16px; color: #00ff00; }
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #222; color: white; }
+        h1 { color: #ff9800; margin-bottom: 20px; }
+        button { background: #ff9800; color: white; border: none; padding: 8px 16px; cursor: pointer; margin: 5px; border-radius: 4px; }
+        button:hover { background: #e68a00; }
+        #wallet-address { margin: 15px 0; font-size: 16px; color: #00ff00; word-break: break-all; }
+        .token { margin: 10px 0; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .token a { color: #00ff00; text-decoration: none; }
+        .token a:hover { text-decoration: underline; }
+        .copy-btn { background: #555; font-size: 12px; padding: 4px 8px; }
+        .copy-btn:hover { background: #777; }
     </style>
 </head>
 <body>
     <h1>Kết Nối Ví & Thêm Token</h1>
     <button onclick="connectWallet()">🔗 Kết Nối Ví</button>
-    <button onclick="addCotienToken()">➕ Thêm Cotien (COT)</button>
-    <button onclick="addPixalalaToken()">➕ Thêm Pixalala (PIX)</button>
-    <button onclick="addTinizoneToken()">➕ Thêm Tinizone (TIN)</button>
     <div id="wallet-address">Chưa kết nối ví...</div>
+
+    <div class="token">
+        <button onclick="addCotienToken()">➕ Thêm Cotien (COT)</button>
+        <a href="https://polygonscan.com/token/0x0d4013b4e2e2f89171bbe956da995757fb5a6678" target="_blank">Polygonscan</a>
+        <button class="copy-btn" onclick="copyAddress('0x0d4013b4e2e2f89171bbe956da995757fb5a6678')">Copy</button>
+    </div>
+    <div class="token">
+        <button onclick="addPixalalaToken()">➕ Thêm Pixalala (PIX)</button>
+        <a href="https://polygonscan.com/token/0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7" target="_blank">Polygonscan</a>
+        <button class="copy-btn" onclick="copyAddress('0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7')">Copy</button>
+    </div>
+    <div class="token">
+        <button onclick="addTinizoneToken()">➕ Thêm Tinizone (TIN)</button>
+        <a href="https://polygonscan.com/token/0xe7d8c8818106a565980315675d7adcb1d8ab1318" target="_blank">Polygonscan</a>
+        <button class="copy-btn" onclick="copyAddress('0xe7d8c8818106a565980315675d7adcb1d8ab1318')">Copy</button>
+    </div>
 
     <!-- Thư viện ethers.js -->
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.0/dist/ethers.umd.min.js"></script>
-    <!-- Web3Modal v3 -->
-    <script src="https://unpkg.com/@web3modal/html@3.3.0"></script>
+    <!-- Web3Modal và WalletConnect -->
+    <script src="https://unpkg.com/@web3modal/ethers/dist/index.js"></script>
 
     <script>
         let provider, signer, account;
+        const PROJECT_ID = "71ea15e324540c729b0528f5e9df30f3"; // Project ID đã được thêm
+
+        const modal = new window.Web3Modal.default({
+            projectId: PROJECT_ID,
+            chains: [{
+                chainId: "0x89",
+                chainName: "Polygon Mainnet",
+                rpcUrls: ["https://polygon-rpc.com"],
+                nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
+                blockExplorerUrls: ["https://polygonscan.com"]
+            }]
+        });
 
         async function connectWallet() {
             try {
-                const modal = new web3modal.createWeb3Modal({
-                    projectId: "71ea15e324540c729b0528f5e9df30f3", // WalletConnect Project ID
-                    walletConnectVersion: 2
-                });
-
-                const instance = await modal.openModal();
+                const instance = await modal.connect();
                 provider = new ethers.BrowserProvider(instance);
                 signer = await provider.getSigner();
                 account = await signer.getAddress();
                 document.getElementById("wallet-address").innerText = `✅ Đã kết nối: ${account}`;
-
-                await switchToPolygon(); // Chuyển sang mạng Polygon nếu chưa đúng
-
+                await switchToPolygon();
             } catch (error) {
                 console.error("Lỗi kết nối ví:", error);
                 alert("⚠️ Lỗi kết nối ví! Hãy thử lại.");
@@ -51,9 +74,9 @@
 
         async function switchToPolygon() {
             try {
-                await provider.send("wallet_switchEthereumChain", [{ chainId: "0x89" }]); // Polygon Mainnet
+                await provider.send("wallet_switchEthereumChain", [{ chainId: "0x89" }]);
             } catch (switchError) {
-                if (switchError.code === 4902) { // Nếu mạng chưa có, thêm vào
+                if (switchError.code === 4902) {
                     await provider.send("wallet_addEthereumChain", [{
                         chainId: "0x89",
                         chainName: "Polygon Mainnet",
@@ -68,30 +91,49 @@
             }
         }
 
-        async function addToken(tokenAddress, tokenSymbol, tokenDecimals) {
+        async function addToken(tokenAddress, tokenSymbol, tokenDecimals, tokenImage) {
             if (!account) {
                 alert("⚠️ Hãy kết nối ví trước!");
                 return;
             }
             try {
                 const wasAdded = await provider.send("wallet_watchAsset", {
-                    type: 'ERC20',
-                    options: { address: tokenAddress, symbol: tokenSymbol, decimals: tokenDecimals }
+                    type: "ERC20",
+                    options: { 
+                        address: tokenAddress, 
+                        symbol: tokenSymbol, 
+                        decimals: tokenDecimals, 
+                        image: tokenImage 
+                    }
                 });
-                if (wasAdded) {
-                    alert(`✅ ${tokenSymbol} đã được thêm vào ví!`);
-                } else {
-                    alert(`❌ Người dùng từ chối thêm ${tokenSymbol}.`);
-                }
+                if (wasAdded) alert(`✅ ${tokenSymbol} đã được thêm!`);
+                else alert(`❌ Người dùng từ chối thêm ${tokenSymbol}.`);
             } catch (error) {
                 console.error("Lỗi thêm token:", error);
-                alert("⚠️ Lỗi khi thêm token! Hãy thử lại.");
+                alert("⚠️ Lỗi khi thêm token!");
             }
         }
 
-        function addCotienToken() { addToken("0x0d4013b4e2e2f89171bbe956da995757fb5a6678", "COT", 18); }
-        function addPixalalaToken() { addToken("0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7", "PIX", 18); }
-        function addTinizoneToken() { addToken("0xe7d8c8818106a565980315675d7adcb1d8ab1318", "TIN", 18); }
+        function addCotienToken() {
+            addToken("0x0d4013b4e2e2f89171bbe956da995757fb5a6678", "COT", 18, "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png");
+        }
+
+        function addPixalalaToken() {
+            addToken("0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7", "PIX", 18, "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png");
+        }
+
+        function addTinizoneToken() {
+            addToken("0xe7d8c8818106a565980315675d7adcb1d8ab1318", "TIN", 18, "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png");
+        }
+
+        function copyAddress(address) {
+            navigator.clipboard.writeText(address).then(() => {
+                alert("✅ Đã sao chép địa chỉ: " + address);
+            }).catch(err => {
+                console.error("Lỗi sao chép:", err);
+                alert("⚠️ Lỗi khi sao chép!");
+            });
+        }
     </script>
 </body>
 </html>
