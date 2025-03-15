@@ -3,110 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ví Cô Tiên - Thêm Token</title>
+    <title>Kết Nối Ví & Thêm Token</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #222;
-            color: white;
-            text-align: center;
-            margin: 0;
-            padding: 20px;
-        }
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background-color: #222; color: white; }
         h1 { color: #ff9800; }
-        button {
-            background-color: #ff9800;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 10px;
-        }
+        button { background-color: #ff9800; color: white; border: none; padding: 10px 20px; cursor: pointer; margin: 10px; }
         button:hover { background-color: #e68a00; }
-        #wallet-address { margin-top: 10px; }
+        #wallet-address { margin-top: 10px; font-size: 16px; color: #00ff00; }
     </style>
 </head>
 <body>
-    <h1>Ví Cô Tiên</h1>
-    <button onclick="connectWallet()">🔗 Kết nối ví</button>
-    <button onclick="addAllTokens()">🔄 Chuyển Polygon & Thêm Token</button>
-    <div id="wallet-address"></div>
+    <h1>Kết Nối Ví & Thêm Token</h1>
+    <button onclick="connectWallet()">🔗 Kết Nối Ví</button>
+    <button onclick="addCotienToken()">➕ Thêm Cotien (COT)</button>
+    <button onclick="addPixalalaToken()">➕ Thêm Pixalala (PIX)</button>
+    <button onclick="addTinizoneToken()">➕ Thêm Tinizone (TIN)</button>
+    <div id="wallet-address">Chưa kết nối ví...</div>
+
+    <!-- Thư viện ethers.js -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.0/dist/ethers.umd.min.js"></script>
+    <!-- Web3Modal v3 -->
+    <script src="https://unpkg.com/@web3modal/html@3.3.0"></script>
 
     <script>
-        let userAddress = "";
+        let provider, signer, account;
 
-        // 🟢 Kết nối ví MetaMask
         async function connectWallet() {
-            if (typeof window.ethereum !== "undefined") {
-                try {
-                    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-                    userAddress = accounts[0];
-                    document.getElementById("wallet-address").innerText = `Ví: ${userAddress}`;
-                    console.log("Đã kết nối ví:", userAddress);
-                } catch (error) {
-                    console.error("Lỗi kết nối ví:", error);
-                    alert("Lỗi kết nối ví!");
-                }
-            } else {
-                alert("Vui lòng cài đặt MetaMask!");
+            try {
+                const modal = new web3modal.createWeb3Modal({
+                    projectId: "71ea15e324540c729b0528f5e9df30f3", // WalletConnect Project ID
+                    walletConnectVersion: 2
+                });
+
+                const instance = await modal.openModal();
+                provider = new ethers.BrowserProvider(instance);
+                signer = await provider.getSigner();
+                account = await signer.getAddress();
+                document.getElementById("wallet-address").innerText = `✅ Đã kết nối: ${account}`;
+
+                await switchToPolygon(); // Chuyển sang mạng Polygon nếu chưa đúng
+
+            } catch (error) {
+                console.error("Lỗi kết nối ví:", error);
+                alert("⚠️ Lỗi kết nối ví! Hãy thử lại.");
             }
         }
 
-        // 🔄 Chuyển mạng Polygon
         async function switchToPolygon() {
-            if (window.ethereum) {
-                try {
-                    await window.ethereum.request({
-                        method: "wallet_switchEthereumChain",
-                        params: [{ chainId: "0x89" }], // 0x89 = 137 (Polygon Mainnet)
-                    });
-                    console.log("Đã chuyển sang mạng Polygon!");
-                } catch (error) {
-                    console.error("Lỗi khi chuyển mạng:", error);
-                    alert("Vui lòng thêm mạng Polygon vào MetaMask!");
+            try {
+                await provider.send("wallet_switchEthereumChain", [{ chainId: "0x89" }]); // Polygon Mainnet
+            } catch (switchError) {
+                if (switchError.code === 4902) { // Nếu mạng chưa có, thêm vào
+                    await provider.send("wallet_addEthereumChain", [{
+                        chainId: "0x89",
+                        chainName: "Polygon Mainnet",
+                        rpcUrls: ["https://polygon-rpc.com"],
+                        nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
+                        blockExplorerUrls: ["https://polygonscan.com"]
+                    }]);
+                } else {
+                    console.error("Lỗi chuyển mạng:", switchError);
+                    alert("⚠️ Không thể chuyển sang Polygon.");
                 }
-            } else {
-                alert("Vui lòng cài đặt MetaMask!");
             }
         }
 
-        // 🏆 Thêm token vào MetaMask (Không có logo)
-        async function addTokenToMetaMask(tokenAddress, tokenSymbol, tokenDecimals) {
-            if (typeof window.ethereum !== "undefined") {
-                try {
-                    const wasAdded = await window.ethereum.request({
-                        method: "wallet_watchAsset",
-                        params: {
-                            type: "ERC20",
-                            options: {
-                                address: tokenAddress,
-                                symbol: tokenSymbol,
-                                decimals: tokenDecimals
-                            },
-                        },
-                    });
-
-                    if (wasAdded) {
-                        console.log(`✅ Token ${tokenSymbol} đã được thêm vào MetaMask!`);
-                    } else {
-                        console.log(`⛔ Người dùng từ chối thêm token ${tokenSymbol}`);
-                    }
-                } catch (error) {
-                    console.error("Lỗi khi thêm token:", error);
+        async function addToken(tokenAddress, tokenSymbol, tokenDecimals) {
+            if (!account) {
+                alert("⚠️ Hãy kết nối ví trước!");
+                return;
+            }
+            try {
+                const wasAdded = await provider.send("wallet_watchAsset", {
+                    type: 'ERC20',
+                    options: { address: tokenAddress, symbol: tokenSymbol, decimals: tokenDecimals }
+                });
+                if (wasAdded) {
+                    alert(`✅ ${tokenSymbol} đã được thêm vào ví!`);
+                } else {
+                    alert(`❌ Người dùng từ chối thêm ${tokenSymbol}.`);
                 }
-            } else {
-                alert("Vui lòng cài đặt MetaMask!");
+            } catch (error) {
+                console.error("Lỗi thêm token:", error);
+                alert("⚠️ Lỗi khi thêm token! Hãy thử lại.");
             }
         }
 
-        // 🚀 Chuyển mạng & Thêm tất cả token
-        async function addAllTokens() {
-            await switchToPolygon(); // Chuyển sang mạng Polygon trước
-            await addTokenToMetaMask("0x0d4013b4e2e2f89171bbe956da995757fb5a6678", "COT", 18);
-            await addTokenToMetaMask("0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7", "PIX", 18);
-            await addTokenToMetaMask("0xe7d8c8818106a565980315675d7adcb1d8ab1318", "TIN", 18);
-        }
+        function addCotienToken() { addToken("0x0d4013b4e2e2f89171bbe956da995757fb5a6678", "COT", 18); }
+        function addPixalalaToken() { addToken("0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7", "PIX", 18); }
+        function addTinizoneToken() { addToken("0xe7d8c8818106a565980315675d7adcb1d8ab1318", "TIN", 18); }
     </script>
 </body>
 </html>
