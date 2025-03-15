@@ -9,7 +9,6 @@
         h1 { color: #ff9800; font-size: 24px; margin: 10px 0; }
         button { background: #ff9800; color: white; border: none; padding: 8px 16px; cursor: pointer; margin: 5px; border-radius: 4px; font-size: 14px; }
         button:hover { background: #e68a00; }
-        button:disabled { background: #555; cursor: not-allowed; }
         #wallet-address { margin: 10px 0; font-size: 14px; color: #00ff00; word-break: break-all; padding: 0 10px; }
         .token { margin: 8px 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
         .token img { width: 24px; height: 24px; vertical-align: middle; margin-right: 5px; }
@@ -25,17 +24,17 @@
     <div id="wallet-address">Chưa kết nối ví...</div>
 
     <div class="token">
-        <button id="add-cot-btn" onclick="addCotienToken()" disabled><img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png" alt="COT"> Thêm Cotien (COT)</button>
+        <button onclick="addCotienToken()"><img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png" alt="COT"> Thêm Cotien (COT)</button>
         <a href="https://polygonscan.com/token/0x0d4013b4e2e2f89171bbe956da995757fb5a6678" target="_blank">Polygonscan</a>
         <button class="copy-btn" onclick="copyAddress('0x0d4013b4e2e2f89171bbe956da995757fb5a6678')">Copy</button>
     </div>
     <div class="token">
-        <button id="add-pix-btn" onclick="addPixalalaToken()" disabled><img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png" alt="PIX"> Thêm Pixalala (PIX)</button>
+        <button onclick="addPixalalaToken()"><img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png" alt="PIX"> Thêm Pixalala (PIX)</button>
         <a href="https://polygonscan.com/token/0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7" target="_blank">Polygonscan</a>
         <button class="copy-btn" onclick="copyAddress('0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7')">Copy</button>
     </div>
     <div class="token">
-        <button id="add-tin-btn" onclick="addTinizoneToken()" disabled><img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png" alt="TIN"> Thêm Tinizone (TIN)</button>
+        <button onclick="addTinizoneToken()"><img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png" alt="TIN"> Thêm Tinizone (TIN)</button>
         <a href="https://polygonscan.com/token/0xe7d8c8818106a565980315675d7adcb1d8ab1318" target="_blank">Polygonscan</a>
         <button class="copy-btn" onclick="copyAddress('0xe7d8c8818106a565980315675d7adcb1d8ab1318')">Copy</button>
     </div>
@@ -45,27 +44,6 @@
 
     <script>
         let provider, signer, account;
-
-        // Hiển thị user agent để debug
-        document.getElementById("wallet-address").innerText += ` | User Agent: ${navigator.userAgent}`;
-
-        // Kiểm tra trình duyệt có phải là Kiwi Browser không
-        function isKiwiBrowser() {
-            const userAgent = navigator.userAgent.toLowerCase();
-            // Kiểm tra chuỗi "kiwi" hoặc các đặc điểm của Kiwi Browser
-            return userAgent.includes("kiwi") || (userAgent.includes("chrome") && userAgent.includes("android") && !userAgent.includes("edg") && !userAgent.includes("samsung"));
-        }
-
-        // Kích hoạt nút "Thêm Token" nếu là Kiwi Browser
-        function enableAddTokenButtons() {
-            if (isKiwiBrowser()) {
-                document.getElementById("add-cot-btn").disabled = false;
-                document.getElementById("add-pix-btn").disabled = false;
-                document.getElementById("add-tin-btn").disabled = false;
-            } else {
-                document.getElementById("wallet-address").innerText += " | Vui lòng dùng Kiwi Browser để thêm token, hoặc dùng trình duyệt MetaMask Mobile để thêm thủ công.";
-            }
-        }
 
         // Kết nối ví MetaMask
         async function connectWallet() {
@@ -80,7 +58,6 @@
                 account = await signer.getAddress();
                 document.getElementById("wallet-address").innerText = `✅ Đã kết nối: ${account}`;
                 await switchToPolygon();
-                enableAddTokenButtons(); // Kiểm tra trình duyệt sau khi kết nối
             } catch (error) {
                 document.getElementById("wallet-address").innerText = `❌ Lỗi kết nối: ${error.message || 'Không rõ nguyên nhân'}`;
             }
@@ -130,7 +107,7 @@
                         }
                     }
                 });
-                document.getElementById("wallet-address").innerText += ` | Đã gửi yêu cầu thêm ${tokenSymbol}. Vui lòng mở MetaMask Extension để xác nhận.`;
+                document.getElementById("wallet-address").innerText += ` | Đã gửi yêu cầu thêm ${tokenSymbol}.`;
             } catch (error) {
                 document.getElementById("wallet-address").innerText += ` | Lỗi thêm token: ${error.message || 'Không rõ nguyên nhân'}`;
             }
