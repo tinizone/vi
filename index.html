@@ -7,20 +7,13 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
             background-color: #222;
             color: white;
-        }
-        .container {
-            max-width: 600px;
-            margin: 20px auto;
+            text-align: center;
+            margin: 0;
             padding: 20px;
-            background: #333;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
-        h1 { text-align: center; color: #ff9800; }
+        h1 { color: #ff9800; }
         button {
             background-color: #ff9800;
             color: white;
@@ -28,69 +21,51 @@
             padding: 10px 20px;
             border-radius: 5px;
             cursor: pointer;
-            margin: 10px 0;
-            width: 100%;
+            margin: 10px;
         }
         button:hover { background-color: #e68a00; }
-        #qr-code { text-align: center; margin: 10px 0; }
+        #wallet-address { margin-top: 10px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Ví Tinizone</h1>
-        <button onclick="connectWallet()">Kết nối ví qua WalletConnect</button>
-        <div id="wallet-address" style="text-align: center; margin: 10px 0;"></div>
-        <div id="qr-code"></div>
-    </div>
+    <h1>Ví Tinizone</h1>
+    <button onclick="connectWallet()">Kết nối ví qua WalletConnect</button>
+    <div id="wallet-address"></div>
 
-    <!-- Import Web3.js -->
+    <!-- Thư viện Web3.js -->
     <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
     
-    <!-- Import WalletConnect v1 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/walletconnect/1.7.4/web3-provider.min.js"></script>
-    
-    <!-- Import QRCode -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- WalletConnect v2 -->
+    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js"></script>
 
     <script>
         let web3;
         let walletConnectProvider;
-        let userAccount;
 
         async function connectWallet() {
             try {
-                // Khởi tạo WalletConnect v1
-                walletConnectProvider = new WalletConnectProvider({
-                    rpc: { 137: "https://polygon-rpc.com" }, // Polygon Mainnet
-                    qrcode: true
+                if (!window.WalletConnectProvider) {
+                    alert("WalletConnectProvider chưa được tải. Vui lòng thử lại!");
+                    return;
+                }
+
+                walletConnectProvider = new WalletConnectProvider.default({
+                    rpc: { 137: "https://polygon-rpc.com" },
+                    chainId: 137
                 });
 
-                // Kết nối ví
                 await walletConnectProvider.enable();
                 web3 = new Web3(walletConnectProvider);
                 const accounts = await web3.eth.getAccounts();
-                userAccount = accounts[0];
-                document.getElementById("wallet-address").innerText = `Địa chỉ ví: ${userAccount}`;
+                document.getElementById("wallet-address").innerText = `Địa chỉ ví: ${accounts[0]}`;
 
-                // Hiển thị mã QR
-                const qrCodeDiv = document.getElementById("qr-code");
-                qrCodeDiv.innerHTML = "";
-                new QRCode(qrCodeDiv, {
-                    text: walletConnectProvider.connector.uri,
-                    width: 128,
-                    height: 128
-                });
-
-                // Xử lý ngắt kết nối
                 walletConnectProvider.on("disconnect", () => {
-                    document.getElementById("wallet-address").innerText = "";
-                    document.getElementById("qr-code").innerHTML = "";
-                    alert("Đã ngắt kết nối ví!");
+                    document.getElementById("wallet-address").innerText = "Đã ngắt kết nối ví!";
                 });
 
             } catch (error) {
                 console.error("Lỗi kết nối ví:", error);
-                alert(`Không thể kết nối ví. Vui lòng thử lại (lỗi: ${error.message}).`);
+                alert(`Lỗi: ${error.message}`);
             }
         }
     </script>
