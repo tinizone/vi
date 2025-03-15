@@ -32,7 +32,7 @@
     <button onclick="connectWallet()">Kết nối ví qua WalletConnect</button>
     <div id="wallet-address"></div>
 
-    <!-- Thư viện Web3.js -->
+    <!-- Web3.js -->
     <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
     
     <!-- WalletConnect v2 -->
@@ -45,11 +45,11 @@
         async function connectWallet() {
             try {
                 walletConnectProvider = new WalletConnectProvider.default({
-                    projectId: "71ea15e324540c729b0528f5e9df30f3", // Thay bằng Project ID thực của WalletConnect
-                    chains: [137], // Polygon Mainnet
-                    rpc: { 
-                        137: "https://polygon-rpc.com" // Dùng RPC công khai thay cho Infura
-                    }
+                    projectId: "71ea15e324540c729b0528f5e9df30f3", // Thay bằng Project ID thực của bạn
+                    rpc: {
+                        137: "https://polygon-rpc.com" // RPC công khai của Polygon Mainnet
+                    },
+                    qrcodeModal: true // Hiển thị QR code trên mobile
                 });
 
                 await walletConnectProvider.enable();
@@ -57,6 +57,7 @@
                 const accounts = await web3.eth.getAccounts();
                 document.getElementById("wallet-address").innerText = `Địa chỉ ví: ${accounts[0]}`;
 
+                // Lắng nghe sự kiện ngắt kết nối
                 walletConnectProvider.on("disconnect", () => {
                     document.getElementById("wallet-address").innerText = "Đã ngắt kết nối ví!";
                 });
