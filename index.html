@@ -40,8 +40,8 @@
 
     <!-- Thư viện ethers.js -->
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.0/dist/ethers.umd.min.js"></script>
-    <!-- Web3Modal với fallback CDN -->
-    <script src="https://unpkg.com/@web3modal/ethers@3.5.4/dist/index.js" onload="onWeb3ModalLoaded()" onerror="onWeb3ModalError()"></script>
+    <!-- Web3Modal với CDN mới -->
+    <script src="https://cdn.jsdelivr.net/npm/@web3modal/ethers@3.5.4/dist/index.js" onload="onWeb3ModalLoaded()" onerror="onWeb3ModalError()"></script>
 
     <script>
         let provider, signer, account, modal;
@@ -50,7 +50,7 @@
         function onWeb3ModalLoaded() {
             try {
                 if (!window.Web3Modal) {
-                    throw new Error("Thư viện Web3Modal không khả dụng sau khi tải.");
+                    throw new Error("Thư viện Web3Modal không khả dụng sau khi tải từ CDN.");
                 }
                 modal = new window.Web3Modal.default({
                     projectId: "71ea15e324540c729b0528f5e9df30f3",
@@ -63,7 +63,7 @@
                         blockExplorerUrls: ["https://polygonscan.com"]
                     }]
                 });
-                console.log("Web3Modal đã tải thành công.");
+                alert("Thư viện Web3Modal đã tải thành công. Nhấn 'Kết Nối Ví' để tiếp tục.");
             } catch (error) {
                 alert("⚠️ Lỗi khởi tạo Web3Modal: " + (error.message || "Không rõ nguyên nhân."));
             }
@@ -71,13 +71,13 @@
 
         // Xử lý khi Web3Modal tải thất bại
         function onWeb3ModalError() {
-            alert("⚠️ Lỗi tải thư viện Web3Modal. Kiểm tra kết nối internet hoặc thử tải lại trang. Fallback: https://unpkg.com/@web3modal/ethers@3.5.4/dist/index.js");
+            alert("⚠️ Lỗi tải thư viện Web3Modal từ CDN. Kiểm tra kết nối internet hoặc thử lại sau. CDN: https://cdn.jsdelivr.net/npm/@web3modal/ethers@3.5.4/dist/index.js");
         }
 
         async function connectWallet() {
             try {
                 if (!modal) {
-                    throw new Error("Web3Modal chưa được khởi tạo. Tải lại trang và thử lại.");
+                    throw new Error("Web3Modal chưa được khởi tạo. Thư viện chưa tải hoặc Project ID không hợp lệ.");
                 }
                 const instance = await modal.connect();
                 if (!instance) throw new Error("Không nhận được provider từ WalletConnect.");
@@ -89,6 +89,7 @@
             } catch (error) {
                 let errorMsg = "⚠️ Lỗi kết nối ví: ";
                 if (error.code === "USER_REJECTED_REQUEST") errorMsg += "Bạn đã từ chối kết nối.";
+                else if (error.code === "INVALID_PROJECT_ID") errorMsg += "Project ID không hợp lệ. Kiểm tra lại trên WalletConnect Cloud.";
                 else if (error.message) errorMsg += error.message;
                 else errorMsg += "Không rõ nguyên nhân. Đảm bảo bạn có ví như MetaMask/Trust Wallet và kết nối internet.";
                 alert(errorMsg);
