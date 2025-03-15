@@ -35,9 +35,7 @@
     <div class="token">
         <button onclick="addTinizoneToken()">➕ Thêm Tinizone (TIN)</button>
         <a href="https://polygonscan.com/token/0xe7d8c8818106a565980315675d7adcb1d8ab1318" target="_blank">Polygonscan</a>
-        <button class="copy-btn" onclick="copyAddress('
-
-0xe7d8c8818106a565980315675d7adcb1d8ab1318')">Copy</button>
+        <button class="copy-btn" onclick="copyAddress('0xe7d8c8818106a565980315675d7adcb1d8ab1318')">Copy</button>
     </div>
 
     <!-- Thư viện ethers.js -->
@@ -46,13 +44,19 @@
     <script>
         let provider, signer, account;
 
+        // Kiểm tra MetaMask trước khi thực hiện bất kỳ hành động nào
+        function checkMetaMask() {
+            if (!window.ethereum) {
+                alert("⚠️ MetaMask Extension không được cài đặt. Vui lòng cài MetaMask trên Kiwi Browser và thử lại.");
+                return false;
+            }
+            return true;
+        }
+
         // Kết nối ví MetaMask
         async function connectWallet() {
+            if (!checkMetaMask()) return;
             try {
-                if (!window.ethereum) {
-                    alert("⚠️ MetaMask Extension không được cài đặt. Vui lòng cài MetaMask trên Kiwi Browser và thử lại.");
-                    return;
-                }
                 await window.ethereum.request({ method: 'eth_requestAccounts' });
                 provider = new ethers.BrowserProvider(window.ethereum);
                 signer = await provider.getSigner();
@@ -70,6 +74,7 @@
 
         // Chuyển sang mạng Polygon
         async function switchToPolygon() {
+            if (!checkMetaMask()) return;
             try {
                 await window.ethereum.request({
                     method: 'wallet_switchEthereumChain',
@@ -88,7 +93,7 @@
                         }]
                     });
                 } else {
-                    alert("⚠️ Lỗi chuyển mạng: " + (switchError.message || "Không rõ nguyên nhân."));
+                    alert("⚠️ Lỗi chuyển mạng: " + (switchError.message || "Không rõ nguyên nhân.") + "\nVui lòng mở MetaMask Extension để xác nhận thủ công.");
                 }
             }
         }
@@ -99,7 +104,11 @@
                 alert("⚠️ Hãy kết nối ví MetaMask trước!");
                 return;
             }
+            if (!checkMetaMask()) return;
             try {
+                // Gọi một yêu cầu đơn giản để "đánh thức" MetaMask
+                await window.ethereum.request({ method: 'eth_chainId' });
+
                 const wasAdded = await window.ethereum.request({
                     method: 'wallet_watchAsset',
                     params: {
@@ -112,13 +121,14 @@
                         }
                     }
                 });
+
                 if (wasAdded) {
                     alert(`✅ ${tokenSymbol} đã được thêm!`);
                 } else {
-                    alert(`⚠️ Vui lòng mở MetaMask Extension trên Kiwi Browser để xác nhận thêm ${tokenSymbol}.`);
+                    alert(`⚠️ Yêu cầu thêm ${tokenSymbol} đã được gửi. Vui lòng mở MetaMask Extension trên Kiwi Browser (Menu -> Extensions -> MetaMask) để xác nhận.`);
                 }
             } catch (error) {
-                alert("⚠️ Lỗi khi thêm token: " + (error.message || "Không rõ nguyên nhân.") + "\nVui lòng mở MetaMask Extension để xác nhận thủ công.");
+                alert("⚠️ Lỗi khi thêm token: " + (error.message || "Không rõ nguyên nhân.") + "\nVui lòng mở MetaMask Extension trên Kiwi Browser (Menu -> Extensions -> MetaMask) để xác nhận thủ công.");
             }
         }
 
