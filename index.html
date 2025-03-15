@@ -29,17 +29,13 @@
 </head>
 <body>
     <h1>Ví Tinizone</h1>
-    <button onclick="connectWallet()">Kết nối ví</button>
+    <button onclick="connectWallet()">Kết nối MetaMask</button>
+    <button onclick="addTokens()">Thêm Token</button>
     <div id="wallet-address"></div>
-    
-    <h2>Thêm Token Vào MetaMask</h2>
-    <button onclick="addToken('COT', '0x0d4013b4e2e2f89171bbe956da995757fb5a6678', 'https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png')">Thêm COT</button>
-    <button onclick="addToken('PIX', '0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7', 'https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png')">Thêm PIX</button>
-    <button onclick="addToken('TIN', '0xe7d8c8818106a565980315675d7adcb1d8ab1318', 'https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png')">Thêm TIN</button>
 
-    <!-- Thư viện Web3.js -->
+    <!-- Web3.js -->
     <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
-
+    
     <!-- WalletConnect v2 -->
     <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
 
@@ -53,7 +49,9 @@
                     rpc: {
                         137: "https://polygon-rpc.com"
                     },
-                    chainId: 137
+                    qrcodeModalOptions: {
+                        mobileLinks: ["metamask"]
+                    }
                 });
 
                 await walletConnectProvider.enable();
@@ -71,29 +69,41 @@
             }
         }
 
-        async function addToken(symbol, tokenAddress, logoURI) {
-            try {
-                const wasAdded = await ethereum.request({
-                    method: 'wallet_watchAsset',
-                    params: {
-                        type: 'ERC20',
-                        options: {
-                            address: tokenAddress,
-                            symbol: symbol,
-                            decimals: 18,
-                            image: logoURI,
-                        },
-                    },
-                });
+        async function addTokens() {
+            if (!web3 || !walletConnectProvider) {
+                alert("Vui lòng kết nối ví trước!");
+                return;
+            }
 
-                if (wasAdded) {
-                    alert(`${symbol} đã được thêm vào MetaMask!`);
-                } else {
-                    alert(`Người dùng đã từ chối thêm ${symbol}.`);
+            const tokens = [
+                { address: "0x0d4013b4e2e2f89171bbe956da995757fb5a6678", symbol: "COT", decimals: 18, image: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png" },
+                { address: "0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7", symbol: "PIX", decimals: 18, image: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png" },
+                { address: "0xe7d8c8818106a565980315675d7adcb1d8ab1318", symbol: "TIN", decimals: 18, image: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png" }
+            ];
+
+            for (const token of tokens) {
+                try {
+                    const wasAdded = await web3.currentProvider.request({
+                        method: "wallet_watchAsset",
+                        params: {
+                            type: "ERC20",
+                            options: {
+                                address: token.address,
+                                symbol: token.symbol,
+                                decimals: token.decimals,
+                                image: token.image
+                            }
+                        }
+                    });
+
+                    if (wasAdded) {
+                        console.log(`${token.symbol} đã được thêm vào ví!`);
+                    } else {
+                        console.log(`Không thêm được ${token.symbol}`);
+                    }
+                } catch (error) {
+                    console.error(`Lỗi thêm token ${token.symbol}:`, error);
                 }
-            } catch (error) {
-                console.error("Lỗi thêm token:", error);
-                alert(`Lỗi: ${error.message}`);
             }
         }
     </script>
