@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ví Tinizone - WalletConnect</title>
+    <title>Ví Tinizone - WalletConnect v2</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -36,7 +36,7 @@
     <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
     
     <!-- WalletConnect v2 -->
-    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
 
     <script>
         let web3;
@@ -44,14 +44,10 @@
 
         async function connectWallet() {
             try {
-                if (!window.WalletConnectProvider) {
-                    alert("WalletConnectProvider chưa được tải. Vui lòng thử lại!");
-                    return;
-                }
-
                 walletConnectProvider = new WalletConnectProvider.default({
-                    rpc: { 137: "https://polygon-rpc.com" },
-                    chainId: 137
+                    projectId: "your_project_id_here", // Thay bằng project ID từ WalletConnect Cloud
+                    chains: [137], // Polygon Mainnet
+                    rpcMap: { 137: "https://polygon-rpc.com" }
                 });
 
                 await walletConnectProvider.enable();
