@@ -1,4 +1,4 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -32,15 +32,6 @@
             width: 100%;
         }
         button:hover { background-color: #e68a00; }
-        .token {
-            padding: 10px;
-            border-bottom: 1px solid #444;
-            display: flex;
-            align-items: center;
-        }
-        .token img { width: 40px; height: 40px; margin-right: 10px; }
-        .token-info { flex-grow: 1; }
-        .token-price { font-size: 0.9em; color: #bbb; }
         #qr-code { text-align: center; margin: 10px 0; }
     </style>
 </head>
@@ -50,85 +41,32 @@
         <button onclick="connectWallet()">Kết nối ví qua WalletConnect</button>
         <div id="wallet-address" style="text-align: center; margin: 10px 0;"></div>
         <div id="qr-code"></div>
-
-        <!-- Token 1: Cotien (COT) -->
-        <div class="token">
-            <img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png" alt="COT Logo">
-            <div class="token-info">
-                <h3>Cotien (COT)</h3>
-                <p class="token-price">Giá: <span id="cot-price">Đang tải...</span> USD</p>
-                <p>Số dư: <span id="cot-balance">0</span> COT</p>
-            </div>
-        </div>
-
-        <!-- Token 2: Pixalala (PIX) -->
-        <div class="token">
-            <img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png" alt="PIX Logo">
-            <div class="token-info">
-                <h3>Pixalala (PIX)</h3>
-                <p class="token-price">Giá: <span id="pix-price">Đang tải...</span> USD</p>
-                <p>Số dư: <span id="pix-balance">0</span> PIX</p>
-            </div>
-        </div>
-
-        <!-- Token 3: Tinizone (TIN) -->
-        <div class="token">
-            <img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png" alt="TIN Logo">
-            <div class="token-info">
-                <h3>Tinizone (TIN)</h3>
-                <p class="token-price">Giá: <span id="tin-price">Đang tải...</span> USD</p>
-                <p>Số dư: <span id="tin-balance">0</span> TIN</p>
-            </div>
-        </div>
     </div>
 
+    <!-- Import Web3.js -->
     <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
-    <script src="https://unpkg.com/@walletconnect/web3-provider@2.8.0/dist/umd/index.umd.min.js"></script>
+    
+    <!-- Import WalletConnect v1 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/walletconnect/1.7.4/web3-provider.min.js"></script>
+    
+    <!-- Import QRCode -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
     <script>
         let web3;
         let walletConnectProvider;
         let userAccount;
 
-        const tokens = {
-            COT: { 
-                name: "Cotien",
-                symbol: "COT",
-                address: "0x0d4013b4e2e2f89171bbe956da995757fb5a6678", 
-                logo: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png",
-                contract: null 
-            },
-            PIX: { 
-                name: "Pixalala",
-                symbol: "PIX",
-                address: "0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7", 
-                logo: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png",
-                contract: null 
-            },
-            TIN: { 
-                name: "Tinizone",
-                symbol: "TIN",
-                address: "0xe7d8c8818106a565980315675d7adcb1d8ab1318", 
-                logo: "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png",
-                contract: null 
-            }
-        };
-
-        const erc20ABI = [
-            {"constant": true, "inputs": [{"name": "_owner", "type": "address"}], "name": "balanceOf", "outputs": [{"name": "balance", "type": "uint256"}], "type": "function"}
-        ];
-
         async function connectWallet() {
             try {
-                // Khởi tạo WalletConnect v2
-                walletConnectProvider = new WalletConnectProvider.default({
+                // Khởi tạo WalletConnect v1
+                walletConnectProvider = new WalletConnectProvider({
                     rpc: { 137: "https://polygon-rpc.com" }, // Polygon Mainnet
-                    chainId: 137,
                     qrcode: true
                 });
 
                 // Kết nối ví
-                await walletConnectProvider.connect();
+                await walletConnectProvider.enable();
                 web3 = new Web3(walletConnectProvider);
                 const accounts = await web3.eth.getAccounts();
                 userAccount = accounts[0];
@@ -143,45 +81,18 @@
                     height: 128
                 });
 
-                initializeContracts();
-                updateBalances(userAccount);
-
                 // Xử lý ngắt kết nối
-                walletConnectProvider.on("disconnect", (code, reason) => {
+                walletConnectProvider.on("disconnect", () => {
                     document.getElementById("wallet-address").innerText = "";
                     document.getElementById("qr-code").innerHTML = "";
-                    console.log(`Ngắt kết nối: ${reason}, Mã: ${code}`);
                     alert("Đã ngắt kết nối ví!");
                 });
+
             } catch (error) {
                 console.error("Lỗi kết nối ví:", error);
-                alert(`Không thể kết nối ví. Vui lòng quét mã QR bằng ví hỗ trợ WalletConnect (lỗi: ${error.message}).`);
+                alert(`Không thể kết nối ví. Vui lòng thử lại (lỗi: ${error.message}).`);
             }
         }
-
-        function initializeContracts() {
-            tokens.COT.contract = new web3.eth.Contract(erc20ABI, tokens.COT.address);
-            tokens.PIX.contract = new web3.eth.Contract(erc20ABI, tokens.PIX.address);
-            tokens.TIN.contract = new web3.eth.Contract(erc20ABI, tokens.TIN.address);
-        }
-
-        async function updateBalances(account) {
-            try {
-                const cotBalance = await tokens.COT.contract.methods.balanceOf(account).call();
-                document.getElementById("cot-balance").innerText = web3.utils.fromWei(cotBalance, "ether");
-                const pixBalance = await tokens.PIX.contract.methods.balanceOf(account).call();
-                document.getElementById("pix-balance").innerText = web3.utils.fromWei(pixBalance, "ether");
-                const tinBalance = await tokens.TIN.contract.methods.balanceOf(account).call();
-                document.getElementById("tin-balance").innerText = web3.utils.fromWei(tinBalance, "ether");
-            } catch (error) {
-                console.error("Lỗi lấy số dư:", error);
-                alert(`Không thể lấy số dư (lỗi: ${error.message}).`);
-            }
-        }
-
-        window.onload = () => {
-            // Không tự động kết nối
-        };
     </script>
 </body>
 </html>
