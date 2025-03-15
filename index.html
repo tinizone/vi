@@ -44,24 +44,32 @@
     <script>
         let provider, signer, account;
 
-        // Kiểm tra MetaMask trước khi thực hiện bất kỳ hành động nào
-        function checkMetaMask() {
+        // Kiểm tra và tái kết nối với MetaMask
+        function checkAndReconnectMetaMask() {
             if (!window.ethereum) {
                 alert("⚠️ MetaMask Extension không được cài đặt. Vui lòng cài MetaMask trên Kiwi Browser và thử lại.");
                 return false;
             }
-            return true;
+            // Thử ping MetaMask để đảm bảo kết nối
+            try {
+                window.ethereum.request({ method: 'eth_chainId' });
+                return true;
+            } catch (error) {
+                alert("⚠️ Không thể kết nối với MetaMask. Vui lòng mở MetaMask Extension (Menu -> Extensions -> MetaMask) và thử lại.");
+                return false;
+            }
         }
 
         // Kết nối ví MetaMask
         async function connectWallet() {
-            if (!checkMetaMask()) return;
+            if (!checkAndReconnectMetaMask()) return;
             try {
                 await window.ethereum.request({ method: 'eth_requestAccounts' });
                 provider = new ethers.BrowserProvider(window.ethereum);
                 signer = await provider.getSigner();
                 account = await signer.getAddress();
                 document.getElementById("wallet-address").innerText = `✅ Đã kết nối: ${account}`;
+                alert("✅ Đã kết nối thành công! Vui lòng không nhấn 'Back' sau khi xác nhận, mà chọn 'Close' hoặc để popup tự động đóng.");
                 await switchToPolygon();
             } catch (error) {
                 let errorMsg = "⚠️ Lỗi kết nối ví: ";
@@ -74,7 +82,7 @@
 
         // Chuyển sang mạng Polygon
         async function switchToPolygon() {
-            if (!checkMetaMask()) return;
+            if (!checkAndReconnectMetaMask()) return;
             try {
                 await window.ethereum.request({
                     method: 'wallet_switchEthereumChain',
@@ -104,9 +112,9 @@
                 alert("⚠️ Hãy kết nối ví MetaMask trước!");
                 return;
             }
-            if (!checkMetaMask()) return;
+            if (!checkAndReconnectMetaMask()) return;
             try {
-                // Gọi một yêu cầu đơn giản để "đánh thức" MetaMask
+                // "Đánh thức" MetaMask trước khi thêm token
                 await window.ethereum.request({ method: 'eth_chainId' });
 
                 const wasAdded = await window.ethereum.request({
@@ -122,10 +130,16 @@
                     }
                 });
 
+                // Kiểm tra sau 1 giây nếu popup không tự động xuất hiện
+                let popupCheck = setTimeout(() => {
+                    if (!wasAdded) {
+                        alert(`⚠️ Yêu cầu thêm ${tokenSymbol} đã được gửi nhưng popup không xuất hiện. Vui lòng mở MetaMask Extension trên Kiwi Browser (Menu -> Extensions -> MetaMask) để xác nhận thủ công. Đảm bảo không nhấn 'Back' sau khi kết nối, mà chọn 'Close'.`);
+                    }
+                }, 1000);
+
                 if (wasAdded) {
+                    clearTimeout(popupCheck);
                     alert(`✅ ${tokenSymbol} đã được thêm!`);
-                } else {
-                    alert(`⚠️ Yêu cầu thêm ${tokenSymbol} đã được gửi. Vui lòng mở MetaMask Extension trên Kiwi Browser (Menu -> Extensions -> MetaMask) để xác nhận.`);
                 }
             } catch (error) {
                 alert("⚠️ Lỗi khi thêm token: " + (error.message || "Không rõ nguyên nhân.") + "\nVui lòng mở MetaMask Extension trên Kiwi Browser (Menu -> Extensions -> MetaMask) để xác nhận thủ công.");
