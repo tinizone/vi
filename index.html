@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kết Nối Ví Trust Wallet & Thêm Tinizone Point</title>
+    <title>Kết Nối Trust Wallet & Airdrop Điểm</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; padding: 10px; background: #222; color: white; margin: 0; }
         h1 { color: #ff9800; font-size: 24px; margin: 10px 0; }
         button { background: #ff9800; color: white; border: none; padding: 8px 16px; cursor: pointer; margin: 5px; border-radius: 4px; font-size: 14px; }
         button:hover { background: #e68a00; }
-        #wallet-address { margin: 10px 0; font-size: 14px; color: #00ff00; word-break: break-all; padding: 0 10px; }
+        button:disabled { background: #555; cursor: not-allowed; }
+        #wallet-address, #points, #message { margin: 10px 0; font-size: 14px; color: #00ff00; word-break: break-all; padding: 0 10px; }
         .token { margin: 8px 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
         .token img { width: 24px; height: 24px; vertical-align: middle; margin-right: 5px; }
         .token a { color: #00ff00; text-decoration: none; font-size: 12px; }
@@ -19,9 +20,12 @@
     </style>
 </head>
 <body>
-    <h1>Kết Nối Ví Trust Wallet & Thêm Tinizone Point</h1>
-    <button onclick="connectWallet()">🔗 Kết Nối Trust Wallet</button>
+    <h1>Kết Nối Trust Wallet & Airdrop Điểm</h1>
+    <button onclick="connectWallet()">🔗 Kết Nối Trust Wallet/MetaMask</button>
     <div id="wallet-address">Chưa kết nối ví...</div>
+    <div id="points">Điểm của bạn: <span id="pointCount">0</span></div>
+    <button id="claimBtn" onclick="claimPoints()">Nhận 10 điểm</button>
+    <div id="message"></div>
 
     <div class="token">
         <button onclick="addCotienToken()"><img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png" alt="COT"> Thêm Cotien (COT)</button>
@@ -39,39 +43,115 @@
         <button class="copy-btn" onclick="copyAddress('0xe7d8c8818106a565980315675d7adcb1d8ab1318')">Copy</button>
     </div>
 
-    <!-- Thư viện ethers.js -->
+    <!-- Thư viện ethers.js và WalletConnect -->
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.0/dist/ethers.umd.min.js"></script>
+    <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
 
     <script>
-        let provider, signer, account;
+        let provider, web3Provider, signer, account;
+        const claimBtn = document.getElementById('claimBtn');
+        const pointCount = document.getElementById('pointCount');
+        const message = document.getElementById('message');
 
-        // Kết nối ví Trust Wallet
+        // Lấy hoặc khởi tạo điểm dựa trên địa chỉ ví
+        function getPoints() {
+            if (!account) return 0;
+            const storedData = localStorage.getItem(`points_${account}`);
+            return storedData ? parseInt(storedData) : 0;
+        }
+
+        function getLastClaim() {
+            if (!account) return null;
+            const storedData = localStorage.getItem(`lastClaim_${account}`);
+            return storedData ? new Date(storedData) : null;
+        }
+
+        function savePoints(points) {
+            if (account) localStorage.setItem(`points_${account}`, points);
+        }
+
+        function saveLastClaim() {
+            if (account) localStorage.setItem(`lastClaim_${account}`, new Date());
+        }
+
+        // Cập nhật hiển thị điểm
+        function updatePointsDisplay() {
+            pointCount.textContent = getPoints();
+        }
+
+        // Kiểm tra trạng thái claim
+        function checkClaimAvailability() {
+            const now = new Date();
+            const lastClaim = getLastClaim();
+            if (lastClaim) {
+                const timeDiff = now - lastClaim;
+                const hoursDiff = timeDiff / (1000 * 60 * 60);
+                if (hoursDiff < 24) {
+                    claimBtn.disabled = true;
+                    message.textContent = 'Bạn đã nhận điểm hôm nay. Quay lại sau 24 giờ!';
+                    return false;
+                }
+            }
+            claimBtn.disabled = false;
+            message.textContent = '';
+            return true;
+        }
+
+        // Kết nối ví (hỗ trợ MetaMask/Trust Wallet và WalletConnect)
         async function connectWallet() {
             try {
-                if (!window.ethereum) {
-                    document.getElementById("wallet-address").innerText = "❌ Trust Wallet không được cài đặt hoặc không hỗ trợ kết nối qua trình duyệt!";
+                // Kiểm tra MetaMask/Trust Wallet extension
+                if (window.ethereum) {
+                    provider = new ethers.BrowserProvider(window.ethereum);
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    signer = await provider.getSigner();
+                    account = await signer.getAddress();
+                    document.getElementById("wallet-address").innerText = `✅ Đã kết nối: ${account.substring(0, 6)}...${account.substring(account.length - 4)}`;
+                    updatePointsDisplay();
+                    checkClaimAvailability();
+                    await switchToPolygon();
                     return;
                 }
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                provider = new ethers.BrowserProvider(window.ethereum);
-                signer = await provider.getSigner();
-                account = await signer.getAddress();
-                document.getElementById("wallet-address").innerText = `✅ Đã kết nối: ${account}`;
-                await switchToPolygon();
+
+                // Kết nối qua WalletConnect
+                if (!window.ethereum) {
+                    const WalletConnectProvider = window.WalletConnectProvider.default;
+                    web3Provider = new WalletConnectProvider({
+                        infuraId: "4372d2aef3d14c4ca2791c7b0a408832", // Thay bằng Infura ID của bạn
+                        rpc: {
+                            137: "https://polygon-rpc.com" // Mạng Polygon
+                        }
+                    });
+                    await web3Provider.enable();
+                    provider = new ethers.BrowserProvider(web3Provider);
+                    signer = await provider.getSigner();
+                    account = await signer.getAddress();
+                    document.getElementById("wallet-address").innerText = `✅ Đã kết nối qua WalletConnect: ${account.substring(0, 6)}...${account.substring(account.length - 4)}`;
+                    updatePointsDisplay();
+                    checkClaimAvailability();
+                    await switchToPolygon();
+                    return;
+                }
+
+                document.getElementById("wallet-address").innerText = "❌ Vui lòng cài MetaMask/Trust Wallet hoặc quét QR để kết nối!";
             } catch (error) {
-                document.getElementById("wallet-address").innerText = `❌ Lỗi kết nối: ${error.message || 'Không rõ nguyên nhân'}`;
+                document.getElementById("wallet-address").innerText = `❌ Lỗi: ${error.message || 'Không rõ nguyên nhân'}`;
             }
         }
 
-        // Chuyển sang mạng Polygon với symbol POL
+        // Chuyển sang mạng Polygon
         async function switchToPolygon() {
             try {
-                await window.ethereum.request({
-                    method: 'wallet_switchEthereumChain',
-                    params: [{ chainId: '0x89' }]
-                });
+                if (window.ethereum) {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: '0x89' }]
+                    });
+                } else if (web3Provider) {
+                    document.getElementById("wallet-address").innerText += " | Vui lòng chuyển sang Polygon Mainnet thủ công trong ví!";
+                }
             } catch (switchError) {
-                if (switchError.code === 4902) {
+                if (switchError.code === 4902 && window.ethereum) {
                     await window.ethereum.request({
                         method: 'wallet_addEthereumChain',
                         params: [{
@@ -83,55 +163,99 @@
                         }]
                     });
                 } else {
-                    document.getElementById("wallet-address").innerText += ` | Lỗi mạng: ${switchError.message || 'Không rõ nguyên nhân'}`;
+                    document.getElementById("wallet-address").innerText += ` | Lỗi mạng: ${switchError.message}`;
                 }
             }
         }
 
-        // Thêm token vào Trust Wallet
+        // Thêm token
         async function addToken(tokenAddress, tokenSymbol, tokenDecimals, tokenImage) {
             if (!account) {
-                document.getElementById("wallet-address").innerText = "❌ Hãy kết nối ví Trust Wallet trước!";
+                document.getElementById("wallet-address").innerText = "❌ Hãy kết nối ví trước!";
                 return;
             }
             try {
-                await window.ethereum.request({
-                    method: 'wallet_watchAsset',
-                    params: {
-                        type: 'ERC20',
-                        options: {
-                            address: tokenAddress,
-                            symbol: tokenSymbol,
-                            decimals: tokenDecimals,
-                            image: tokenImage
+                let wasAdded;
+                if (window.ethereum) {
+                    wasAdded = await window.ethereum.request({
+                        method: 'wallet_watchAsset',
+                        params: {
+                            type: 'ERC20',
+                            options: {
+                                address: tokenAddress,
+                                symbol: tokenSymbol,
+                                decimals: tokenDecimals,
+                                image: tokenImage
+                            }
                         }
-                    }
-                });
-                document.getElementById("wallet-address").innerText += ` | Đã gửi yêu cầu thêm ${tokenSymbol}. Kiểm tra danh sách token trong Trust Wallet!`;
+                    });
+                } else if (web3Provider) {
+                    document.getElementById("wallet-address").innerText += ` | Thêm ${tokenSymbol} thủ công trong ví!`;
+                    return;
+                }
+                if (wasAdded) {
+                    document.getElementById("wallet-address").innerText += ` | Đã thêm ${tokenSymbol} thành công!`;
+                } else {
+                    document.getElementById("wallet-address").innerText += ` | Bạn đã hủy thêm ${tokenSymbol}.`;
+                }
             } catch (error) {
-                document.getElementById("wallet-address").innerText += ` | Lỗi thêm token: ${error.message || 'Không rõ nguyên nhân'}. Hãy thêm thủ công trong Trust Wallet.`;
+                document.getElementById("wallet-address").innerText += ` | Lỗi: ${error.message || 'Thêm thủ công trong Trust Wallet'}.`;
             }
         }
 
-        function addCotienToken() {
-            addToken("0x0d4013b4e2e2f89171bbe956da995757fb5a6678", "COT", 18, "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png");
+        function addCotienToken() { addToken("0x0d4013b4e2e2f89171bbe956da995757fb5a6678", "COT", 18, "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png"); }
+        function addPixalalaToken() { addToken("0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7", "PIX", 18, "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png"); }
+        function addTinizoneToken() { addToken("0xe7d8c8818106a565980315675d7adcb1d8ab1318", "TIN", 18, "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png"); }
+
+        // Nhận điểm
+        function claimPoints() {
+            if (!account) {
+                message.textContent = "❌ Hãy kết nối ví Trust Wallet hoặc MetaMask trước!";
+                return;
+            }
+            if (checkClaimAvailability()) {
+                const newPoints = getPoints() + 10;
+                savePoints(newPoints);
+                saveLastClaim();
+                updatePointsDisplay();
+                claimBtn.disabled = true;
+                message.textContent = 'Bạn vừa nhận 10 điểm!';
+                setTimeout(() => {
+                    message.textContent = '';
+                }, 3000);
+            }
         }
 
-        function addPixalalaToken() {
-            addToken("0x1d7e521627cc4955ac8df6fe2fcb45891d0f30b7", "PIX", 18, "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Pi256.png");
-        }
-
-        function addTinizoneToken() {
-            addToken("0xe7d8c8818106a565980315675d7adcb1d8ab1318", "TIN", 18, "https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Tin256.png");
-        }
-
+        // Copy địa chỉ
         function copyAddress(address) {
-            navigator.clipboard.writeText(address).then(() => {
-                document.getElementById("wallet-address").innerText += " | Đã sao chép địa chỉ!";
-            }).catch(() => {
-                document.getElementById("wallet-address").innerText += " | Lỗi sao chép!";
-            });
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(address).then(() => {
+                    document.getElementById("wallet-address").innerText += " | Đã sao chép!";
+                }).catch(() => fallbackCopy(address));
+            } else {
+                fallbackCopy(address);
+            }
         }
+
+        function fallbackCopy(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            document.getElementById("wallet-address").innerText += " | Đã sao chép (fallback)!";
+        }
+
+        // Kiểm tra khi tải trang
+        window.onload = function() {
+            if (window.ethereum && window.ethereum.selectedAddress) {
+                connectWallet();
+            } else if (!window.ethereum) {
+                document.getElementById("wallet-address").innerText = "❌ Vui lòng cài MetaMask/Trust Wallet hoặc quét QR để kết nối!";
+            }
+            checkClaimAvailability();
+        };
     </script>
 </body>
 </html>
