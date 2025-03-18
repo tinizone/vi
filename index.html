@@ -10,7 +10,7 @@
         button { background: #ff9800; color: white; border: none; padding: 8px 16px; cursor: pointer; margin: 5px; border-radius: 4px; font-size: 14px; }
         button:hover { background: #e68a00; }
         button:disabled { background: #555; cursor: not-allowed; }
-        #wallet-address, #points, #message { margin: 10px 0; font-size: 14px; color: #00ff00; word-break: break-all; padding: 0 10px; }
+        #wallet-address, #points, #message, #debug { margin: 10px 0; font-size: 14px; color: #00ff00; word-break: break-all; padding: 0 10px; }
         .token { margin: 8px 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
         .token img { width: 24px; height: 24px; vertical-align: middle; margin-right: 5px; }
         .token a { color: #00ff00; text-decoration: none; font-size: 12px; }
@@ -26,6 +26,7 @@
     <div id="points">Điểm của bạn: <span id="pointCount">0</span></div>
     <button id="claimBtn" onclick="claimPoints()">Nhận 10 điểm</button>
     <div id="message"></div>
+    <div id="debug"></div> <!-- Thêm khu vực debug -->
 
     <div class="token">
         <button onclick="addCotienToken()"><img src="https://raw.githubusercontent.com/tinizone/Logo/refs/heads/main/Cotien256.png" alt="COT"> Thêm Cotien (COT)</button>
@@ -49,10 +50,17 @@
 
     <script>
         let provider, web3Provider, signer, account;
-        const INFURA_URL = "https://polygon-mainnet.infura.io/v3/4372d2aef3d14c4ca2791c7b0a408832"; // Thay YOUR_PROJECT_ID bằng Infura Project ID của bạn
+        const INFURA_URL = "https://polygon-mainnet.infura.io/v3/4372d2aef3d14c4ca2791c7b0a408832"; // Sử dụng Infura ID bạn cung cấp
+        const debugElement = document.getElementById('debug');
         const claimBtn = document.getElementById('claimBtn');
         const pointCount = document.getElementById('pointCount');
         const message = document.getElementById('message');
+
+        // Hàm debug
+        function logDebug(message) {
+            debugElement.innerText += `${new Date().toLocaleTimeString()} - ${message}\n`;
+            console.log(message);
+        }
 
         // Lấy hoặc khởi tạo điểm dựa trên địa chỉ ví
         function getPoints() {
@@ -98,18 +106,23 @@
             return true;
         }
 
-        // Kết nối ví (ưu tiên MetaMask, sau đó WalletConnect)
+        // Kết nối ví
         async function connectWallet() {
+            logDebug("Bắt đầu kết nối ví...");
             try {
                 // Kiểm tra thiết bị mobile
                 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                logDebug(`Thiết bị: ${isMobile ? 'Mobile' : 'Desktop'}`);
 
-                // Thử kết nối qua MetaMask/Trust Wallet extension
+                // Thử kết nối qua MetaMask/Trust Wallet
                 if (window.ethereum && !isMobile) {
+                    logDebug("Phát hiện window.ethereum, thử kết nối...");
                     provider = new ethers.BrowserProvider(window.ethereum);
                     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    logDebug(`Đã nhận accounts: ${accounts}`);
                     signer = await provider.getSigner();
                     account = await signer.getAddress();
+                    logDebug(`Địa chỉ ví: ${account}`);
                     document.getElementById("wallet-address").innerText = `✅ Đã kết nối: ${account.substring(0, 6)}...${account.substring(account.length - 4)}`;
                     updatePointsDisplay();
                     checkClaimAvailability();
@@ -117,43 +130,48 @@
                     return;
                 }
 
-                // Nếu trên mobile hoặc không có extension, sử dụng WalletConnect
+                // Kết nối qua WalletConnect (ưu tiên trên mobile)
+                logDebug("Không tìm thấy window.ethereum, thử WalletConnect...");
                 const WalletConnectProvider = window.WalletConnectProvider.default;
                 web3Provider = new WalletConnectProvider({
                     rpc: {
-                        137: INFURA_URL // Sử dụng Infura RPC cho Polygon Mainnet
+                        137: INFURA_URL // Sử dụng Infura RPC
                     },
                     chainId: 137 // Polygon Mainnet
                 });
-
-                // Kích hoạt WalletConnect
+                logDebug("WalletConnect provider được tạo, kích hoạt...");
                 await web3Provider.enable();
+                logDebug("WalletConnect đã kích hoạt, tạo provider ethers...");
                 provider = new ethers.BrowserProvider(web3Provider);
                 signer = await provider.getSigner();
                 account = await signer.getAddress();
+                logDebug(`Đã kết nối qua WalletConnect, địa chỉ: ${account}`);
                 document.getElementById("wallet-address").innerText = `✅ Đã kết nối qua WalletConnect: ${account.substring(0, 6)}...${account.substring(account.length - 4)}`;
                 updatePointsDisplay();
                 checkClaimAvailability();
-                // WalletConnect không hỗ trợ switch network tự động
                 document.getElementById("wallet-address").innerText += " | Vui lòng chuyển sang Polygon Mainnet thủ công!";
             } catch (error) {
+                logDebug(`Lỗi kết nối: ${error.message || 'Không rõ nguyên nhân'}`);
                 document.getElementById("wallet-address").innerText = `❌ Lỗi: ${error.message || 'Vui lòng cài MetaMask/Trust Wallet hoặc quét QR để kết nối!'}`;
                 if (!window.ethereum) {
-                    document.getElementById("wallet-address").innerText += " | Trên mobile, hãy quét QR bằng MetaMask app.";
+                    document.getElementById("wallet-address").innerText += " | Trên mobile, hãy quét QR bằng MetaMask/Trust Wallet app.";
                 }
             }
         }
 
         // Chuyển sang mạng Polygon
         async function switchToPolygon() {
+            logDebug("Thử chuyển sang mạng Polygon...");
             try {
                 if (window.ethereum) {
                     await window.ethereum.request({
                         method: 'wallet_switchEthereumChain',
                         params: [{ chainId: '0x89' }]
                     });
+                    logDebug("Chuyển mạng thành công.");
                 }
             } catch (switchError) {
+                logDebug(`Lỗi chuyển mạng: ${switchError.message}`);
                 if (switchError.code === 4902 && window.ethereum) {
                     await window.ethereum.request({
                         method: 'wallet_addEthereumChain',
@@ -165,6 +183,7 @@
                             blockExplorerUrls: ['https://polygonscan.com']
                         }]
                     });
+                    logDebug("Đã thêm mạng Polygon.");
                 } else {
                     document.getElementById("wallet-address").innerText += ` | Lỗi mạng: ${switchError.message}. Vui lòng chuyển thủ công!`;
                 }
@@ -252,9 +271,11 @@
 
         // Kiểm tra khi tải trang
         window.onload = function() {
+            logDebug("Trang đã tải, kiểm tra ví...");
             if (window.ethereum && window.ethereum.selectedAddress) {
                 connectWallet();
             } else {
+                logDebug("Không tìm thấy window.ethereum.");
                 document.getElementById("wallet-address").innerText = "❌ Vui lòng cài MetaMask/Trust Wallet hoặc quét QR để kết nối!";
             }
             checkClaimAvailability();
