@@ -43,8 +43,12 @@
 
             try {
                 const web3 = new Web3(window.ethereum);
-                await window.ethereum.request({ method: "eth_requestAccounts" });
-                const accounts = await web3.eth.getAccounts();
+
+                // Ép buộc MetaMask hiển thị xác nhận cấp quyền
+                await window.ethereum.request({ method: "wallet_requestPermissions", params: [{ eth_accounts: {} }] });
+
+                // Kiểm tra lại danh sách tài khoản
+                const accounts = await window.ethereum.request({ method: "eth_accounts" });
 
                 if (accounts.length > 0) {
                     document.getElementById("walletAddress").innerText = accounts[0];
