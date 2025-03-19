@@ -4,77 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kết Nối MetaMask Mobile</title>
+    
+    <!-- Import Web3.js & WalletConnect từ CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/4.2.1/web3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/@walletconnect/web3-provider/1.7.8/web3-provider.min.js"></script>
 </head>
 <body>
     <h2>Kết Nối Ví MetaMask Mobile</h2>
     
-    <!-- Nút kết nối MetaMask -->
-    <button onclick="connectMetaMask()">Kết nối MetaMask</button>
+    <button onclick="connectWallet()">Kết nối MetaMask hoặc WalletConnect</button>
     <p>Địa chỉ ví: <span id="walletAddress">Chưa kết nối</span></p>
 
-    <!-- Nút mở lại trong MetaMask -->
-    <button id="openMetaMaskBtn" onclick="openInMetaMask()" style="display: none;">
-        Mở lại trong MetaMask
-    </button>
-
     <script>
-        function checkMetaMask() {
-            if (!window.ethereum || !window.ethereum.isMetaMask) {
-                document.getElementById("openMetaMaskBtn").style.display = "block";
-            }
-        }
-
-        function openInMetaMask() {
-            const currentUrl = encodeURIComponent(window.location.href);
-            const metamaskDeepLink = `https://metamask.app.link/dapp/${currentUrl}`;
-            window.location.href = metamaskDeepLink;
-        }
-
-        async function connectMetaMask() {
-            if (!window.ethereum) {
-                alert("Vui lòng mở trang này trong MetaMask!");
-                return;
-            }
-
+        async function connectWallet() {
             try {
-                const web3 = new Web3(window.ethereum);
-
-                // Bước 1: Thêm mạng vào MetaMask nếu chưa có
-                await window.ethereum.request({
-                    method: "wallet_addEthereumChain",
-                    params: [{
-                        chainId: "0x89", // Polygon (Thay đổi nếu dùng BSC hoặc Ethereum)
-                        chainName: "Polygon",
-                        nativeCurrency: {
-                            name: "MATIC",
-                            symbol: "MATIC",
-                            decimals: 18
-                        },
-                        rpcUrls: ["https://polygon-rpc.com/"],
-                        blockExplorerUrls: ["https://polygonscan.com/"]
-                    }]
+                const provider = new WalletConnectProvider.default({
+                    rpc: {
+                        56: "https://bsc-dataseed.binance.org/" // BSC Mainnet (đổi nếu dùng Ethereum/Polygon)
+                    }
                 });
 
-                // Bước 2: Yêu cầu quyền truy cập tài khoản
-                const popup = window.open("", "_blank"); // Tạo pop-up tránh chặn
-                await window.ethereum.request({ method: "eth_requestAccounts" });
-                popup.close(); // Đóng pop-up sau khi mở MetaMask
+                await provider.enable(); // Hiển thị QR Code / mở ví di động
 
-                // Bước 3: Kiểm tra lại danh sách tài khoản
-                const accounts = await window.ethereum.request({ method: "eth_accounts" });
-
+                const web3 = new Web3(provider);
+                const accounts = await web3.eth.getAccounts();
+                
                 if (accounts.length > 0) {
                     document.getElementById("walletAddress").innerText = accounts[0];
                 } else {
                     document.getElementById("walletAddress").innerText = "Không tìm thấy ví!";
                 }
             } catch (error) {
-                console.error("Lỗi kết nối ví:", error);
+                console.error("Lỗi kết nối:", error);
             }
         }
-
-        checkMetaMask();
     </script>
 </body>
-</html> 2
+</html>
