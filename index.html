@@ -3,27 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kết Nối Ví MetaMask</title>
+    <title>Kết Nối MetaMask Mobile</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/4.2.1/web3.min.js"></script>
 </head>
 <body>
-    <h2>Kết Nối Ví trên Chrome Mobile</h2>
+    <h2>Kết Nối Ví MetaMask Mobile</h2>
     <button onclick="connectMetaMask()">Kết nối MetaMask</button>
     <p>Địa chỉ ví: <span id="walletAddress">Chưa kết nối</span></p>
 
     <script>
         async function connectMetaMask() {
-            if (window.ethereum) {
-                try {
-                    const web3 = new Web3(window.ethereum);
-                    await window.ethereum.request({ method: "eth_requestAccounts" });
-                    const accounts = await web3.eth.getAccounts();
-                    document.getElementById("walletAddress").innerText = accounts[0] || "Không tìm thấy ví!";
-                } catch (error) {
-                    console.error("Lỗi kết nối ví:", error);
-                }
-            } else {
-                alert("Vui lòng cài đặt MetaMask!");
+            const metamaskAppDeepLink = "https://metamask.app.link/dapp/" + window.location.href;
+
+            if (!window.ethereum) {
+                // Mở MetaMask Mobile thông qua deep-link
+                window.location.href = metamaskAppDeepLink;
+                return;
+            }
+
+            try {
+                const web3 = new Web3(window.ethereum);
+                await window.ethereum.request({ method: "eth_requestAccounts" });
+                const accounts = await web3.eth.getAccounts();
+                document.getElementById("walletAddress").innerText = accounts[0] || "Không tìm thấy ví!";
+            } catch (error) {
+                console.error("Lỗi kết nối ví:", error);
             }
         }
     </script>
