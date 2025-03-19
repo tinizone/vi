@@ -16,7 +16,7 @@
             const metamaskAppDeepLink = "https://metamask.app.link/dapp/" + window.location.href;
 
             if (!window.ethereum) {
-                // Mở MetaMask Mobile thông qua deep-link
+                // Mở MetaMask Mobile nếu trình duyệt không hỗ trợ Ethereum Provider
                 window.location.href = metamaskAppDeepLink;
                 return;
             }
@@ -25,7 +25,19 @@
                 const web3 = new Web3(window.ethereum);
                 await window.ethereum.request({ method: "eth_requestAccounts" });
                 const accounts = await web3.eth.getAccounts();
-                document.getElementById("walletAddress").innerText = accounts[0] || "Không tìm thấy ví!";
+
+                if (accounts.length > 0) {
+                    const account = accounts[0];
+                    document.getElementById("walletAddress").innerText = account;
+
+                    // Gửi yêu cầu ký xác nhận
+                    const message = "Xác nhận đăng nhập vào website";
+                    const signature = await web3.eth.personal.sign(message, account, "");
+
+                    console.log("Chữ ký:", signature);
+                } else {
+                    document.getElementById("walletAddress").innerText = "Không tìm thấy ví!";
+                }
             } catch (error) {
                 console.error("Lỗi kết nối ví:", error);
             }
