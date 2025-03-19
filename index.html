@@ -3,67 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WalletConnect Auto-Connect</title>
+    <title>WalletConnect Debug</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
         button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
         #walletInfo { margin-top: 20px; font-weight: bold; }
+        #debugInfo { margin-top: 10px; color: red; }
     </style>
 </head>
 <body>
     <h1>Kết nối ví qua WalletConnect</h1>
     <button id="connectButton">Kết nối ví</button>
     <div id="walletInfo">Địa chỉ ví: Chưa kết nối</div>
+    <div id="debugInfo"></div>
 
-    <!-- Thư viện WalletConnect v2 và Web3 -->
-    <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.10.0/dist/index.umd.js"></script>
+    <!-- Thư viện WalletConnect v1 và Web3 -->
+    <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
     <script src="https://unpkg.com/web3@1.7.5/dist/web3.min.js"></script>
 
     <script>
-        // Khởi tạo WalletConnect v2
-        const provider = new EthereumProvider.EthereumProvider({
-            chainId: 1, // Ethereum Mainnet (có thể đổi sang 56 cho BSC, 137 cho Polygon, v.v.)
+        // Khởi tạo WalletConnect
+        const walletConnectProvider = new WalletConnectProvider.default({
+            bridge: "https://bridge.walletconnect.org",
+            qrcode: true, // Bật QR để dễ debug nếu deep link không hoạt động
             rpc: {
                 1: "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
             },
-            projectId: "c47b5cb05e1f4bafb5804a06cd0f8f5a", // Project ID miễn phí từ WalletConnect Cloud
         });
+
+        const connectButton = document.getElementById("connectButton");
+        const walletInfo = document.getElementById("walletInfo");
+        const debugInfo = document.getElementById("debugInfo");
 
         async function connectWallet() {
             try {
-                console.log("Bắt đầu kết nối...");
-                // Kích hoạt provider
-                await provider.enable();
-                console.log("Provider đã kích hoạt:", provider);
+                debugInfo.innerText = "Đang khởi động kết nối...";
+                await walletConnectProvider.enable();
+                debugInfo.innerText = "Provider đã kích hoạt, đang lấy thông tin...";
 
-                // Khởi tạo Web3 với provider
-                const web3 = new Web3(provider);
-                console.log("Web3 đã khởi tạo");
-
-                // Lấy địa chỉ ví
+                const web3 = new Web3(walletConnectProvider);
                 const accounts = await web3.eth.getAccounts();
                 const address = accounts[0];
-                console.log("Địa chỉ ví:", address);
+                walletInfo.innerText = `Địa chỉ ví: ${address}`;
+                debugInfo.innerText = "Kết nối thành công!";
 
-                // Hiển thị địa chỉ
-                document.getElementById("walletInfo").innerText = `Địa chỉ ví: ${address}`;
-
-                // Lắng nghe ngắt kết nối
-                provider.on("disconnect", () => {
-                    document.getElementById("walletInfo").innerText = "Địa chỉ ví: Chưa kết nối";
-                    console.log("Đã ngắt kết nối");
+                walletConnectProvider.on("disconnect", () => {
+                    walletInfo.innerText = "Địa chỉ ví: Chưa kết nối";
+                    debugInfo.innerText = "Đã ngắt kết nối";
                 });
-
             } catch (error) {
-                console.error("Lỗi kết nối:", error);
-                document.getElementById("walletInfo").innerText = "Lỗi: " + error.message;
+                console.error("Lỗi:", error);
+                debugInfo.innerText = "Lỗi: " + error.message;
+                walletInfo.innerText = "Không thể kết nối ví";
             }
         }
 
-        // Gắn sự kiện nút
-        document.addEventListener("DOMContentLoaded", () => {
-            const connectButton = document.getElementById("connectButton");
-            connectButton.addEventListener("click", connectWallet);
+        // Gắn sự kiện
+        connectButton.addEventListener("click", () => {
+            debugInfo.innerText = "Nút đã được nhấn, đang thử kết nối...";
+            connectWallet();
         });
     </script>
 </body>
