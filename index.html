@@ -8,16 +8,36 @@
 </head>
 <body>
     <h2>Kết Nối Ví MetaMask Mobile</h2>
+    
+    <!-- Nút kết nối MetaMask -->
     <button onclick="connectMetaMask()">Kết nối MetaMask</button>
     <p>Địa chỉ ví: <span id="walletAddress">Chưa kết nối</span></p>
 
-    <script>
-        async function connectMetaMask() {
-            const metamaskAppDeepLink = "https://metamask.app.link/dapp/" + window.location.href;
+    <!-- Nút mở lại trong MetaMask -->
+    <button id="openMetaMaskBtn" onclick="openInMetaMask()" style="display: none;">
+        Mở lại trong MetaMask
+    </button>
 
+    <script>
+        // Kiểm tra xem trình duyệt có hỗ trợ MetaMask không
+        function checkMetaMask() {
+            if (!window.ethereum || !window.ethereum.isMetaMask) {
+                // Nếu không có window.ethereum, hiển thị nút "Mở lại trong MetaMask"
+                document.getElementById("openMetaMaskBtn").style.display = "block";
+            }
+        }
+
+        // Mở lại website trong MetaMask Mobile
+        function openInMetaMask() {
+            const currentUrl = encodeURIComponent(window.location.href);
+            const metamaskDeepLink = `https://metamask.app.link/dapp/${currentUrl}`;
+            window.location.href = metamaskDeepLink;
+        }
+
+        // Kết nối MetaMask
+        async function connectMetaMask() {
             if (!window.ethereum) {
-                // Mở MetaMask Mobile nếu trình duyệt không hỗ trợ Ethereum Provider
-                window.location.href = metamaskAppDeepLink;
+                alert("Bạn cần mở trang web này trong trình duyệt MetaMask!");
                 return;
             }
 
@@ -27,14 +47,7 @@
                 const accounts = await web3.eth.getAccounts();
 
                 if (accounts.length > 0) {
-                    const account = accounts[0];
-                    document.getElementById("walletAddress").innerText = account;
-
-                    // Gửi yêu cầu ký xác nhận
-                    const message = "Xác nhận đăng nhập vào website";
-                    const signature = await web3.eth.personal.sign(message, account, "");
-
-                    console.log("Chữ ký:", signature);
+                    document.getElementById("walletAddress").innerText = accounts[0];
                 } else {
                     document.getElementById("walletAddress").innerText = "Không tìm thấy ví!";
                 }
@@ -42,6 +55,9 @@
                 console.error("Lỗi kết nối ví:", error);
             }
         }
+
+        // Kiểm tra khi tải trang
+        checkMetaMask();
     </script>
 </body>
 </html>
