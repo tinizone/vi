@@ -35,18 +35,34 @@
             background-color: #00b4d8;
         }
 
-        #walletInfo, #connecting {
+        #status {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        #walletInfo {
             margin-top: 20px;
             display: none;
         }
 
-        #walletInfo p, #connecting p {
+        #walletInfo p, #status {
             margin: 5px 0;
         }
 
         #error {
             color: #ff4444;
             display: none;
+            margin-top: 10px;
+        }
+
+        .loading {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
         }
     </style>
 </head>
@@ -60,9 +76,7 @@
             <option value="base">Base Mainnet</option>
         </select>
         <button id="connectButton">Kết Nối Ví</button>
-        <div id="connecting">
-            <p>Đang kết nối...</p>
-        </div>
+        <div id="status"></div>
         <div id="walletInfo">
             <p>Địa chỉ ví: <span id="account"></span></p>
             <p>Mạng: <span id="network"></span></p>
@@ -96,7 +110,7 @@
         }
 
         // Thay YOUR_API_KEY_SECRET bằng API Key Secret thực tế của bạn từ Infura
-        const YOUR_API_KEY_SECRET = "4372d2aef3d14c4ca2791c7b0a408832"; // Ví dụ: "abc123def456"
+        const YOUR_API_KEY_SECRET = "4372d2aef3d14c4ca2791c7b0a408832"; // Thay bằng API Key Secret của bạn, ví dụ: "abc123def456"
         const networkRpcs = {
             "matic": `https://polygon-mainnet.infura.io/v3/${YOUR_API_KEY_SECRET}`,
             "maticmum": `https://polygon-amoy.infura.io/v3/${YOUR_API_KEY_SECRET}`,
@@ -106,14 +120,15 @@
 
         async function connectWallet() {
             const connectButton = document.getElementById('connectButton');
-            const connecting = document.getElementById('connecting');
+            const status = document.getElementById('status');
             const walletInfo = document.getElementById('walletInfo');
             const errorDiv = document.getElementById('error');
             const selectedNetwork = document.getElementById('networkSelect').value;
             const rpcUrl = networkRpcs[selectedNetwork];
 
-            // Hiển thị thông báo kết nối
-            connecting.style.display = 'block';
+            // Bắt đầu quá trình kết nối
+            status.textContent = "Đang kết nối...";
+            status.classList.add('loading');
             connectButton.disabled = true;
             walletInfo.style.display = 'none';
             errorDiv.style.display = 'none';
@@ -121,6 +136,7 @@
             try {
                 if (window.ethereum) {
                     walletProvider = new ethers.providers.Web3Provider(window.ethereum);
+                    // Yêu cầu kết nối MetaMask
                     await window.ethereum.request({ method: 'eth_requestAccounts' });
                     provider = walletProvider;
                 } else {
@@ -129,6 +145,7 @@
                         infuraId: YOUR_API_KEY_SECRET,
                         rpc: { [selectedNetwork]: rpcUrl },
                     });
+                    // Yêu cầu kết nối WalletConnect
                     await walletProvider.enable();
                     provider = new ethers.providers.Web3Provider(walletProvider);
                 }
@@ -153,25 +170,31 @@
                     });
                 }
 
+                // Lấy thông tin sau khi kết nối
                 const signer = provider.getSigner();
                 const address = await signer.getAddress();
                 const network = await provider.getNetwork();
                 const balance = await provider.getBalance(address);
                 const balanceInEther = ethers.utils.formatEther(balance);
 
-                // Hiển thị thông tin sau khi kết nối
+                // Cập nhật giao diện sau khi kết nối thành công
+                status.textContent = "Kết nối thành công!";
+                status.classList.remove('loading');
                 document.getElementById('account').textContent = address;
                 document.getElementById('network').textContent = translateNetworkName(network.name);
                 document.getElementById('balance').textContent = balanceInEther.substring(0, 6);
                 walletInfo.style.display = 'block';
-                connecting.style.display = 'none';
+                setTimeout(() => {
+                    status.textContent = ""; // Ẩn thông báo sau 2 giây
+                }, 2000);
 
                 console.log('Đã kết nối ví:', address, 'Mạng:', translateNetworkName(network.name));
             } catch (error) {
                 console.error('Lỗi khi kết nối ví:', error);
+                status.textContent = "Kết nối thất bại!";
+                status.classList.remove('loading');
                 errorDiv.textContent = 'Lỗi: ' + error.message;
                 errorDiv.style.display = 'block';
-                connecting.style.display = 'none';
                 connectButton.disabled = false;
             }
         }
