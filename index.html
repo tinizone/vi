@@ -19,35 +19,49 @@
     </button>
 
     <script>
-        // Kiểm tra xem trình duyệt có hỗ trợ MetaMask không
         function checkMetaMask() {
             if (!window.ethereum || !window.ethereum.isMetaMask) {
-                // Nếu không có window.ethereum, hiển thị nút "Mở lại trong MetaMask"
                 document.getElementById("openMetaMaskBtn").style.display = "block";
             }
         }
 
-        // Mở lại website trong MetaMask Mobile
         function openInMetaMask() {
             const currentUrl = encodeURIComponent(window.location.href);
             const metamaskDeepLink = `https://metamask.app.link/dapp/${currentUrl}`;
             window.location.href = metamaskDeepLink;
         }
 
-        // Kết nối MetaMask
         async function connectMetaMask() {
             if (!window.ethereum) {
-                alert("Bạn cần mở trang web này trong trình duyệt MetaMask!");
+                alert("Vui lòng mở trang này trong MetaMask!");
                 return;
             }
 
             try {
                 const web3 = new Web3(window.ethereum);
 
-                // Ép buộc MetaMask hiển thị xác nhận cấp quyền
-                await window.ethereum.request({ method: "wallet_requestPermissions", params: [{ eth_accounts: {} }] });
+                // Bước 1: Thêm mạng vào MetaMask nếu chưa có
+                await window.ethereum.request({
+                    method: "wallet_addEthereumChain",
+                    params: [{
+                        chainId: "0x89", // Polygon (Thay đổi nếu dùng BSC hoặc Ethereum)
+                        chainName: "Polygon",
+                        nativeCurrency: {
+                            name: "MATIC",
+                            symbol: "MATIC",
+                            decimals: 18
+                        },
+                        rpcUrls: ["https://polygon-rpc.com/"],
+                        blockExplorerUrls: ["https://polygonscan.com/"]
+                    }]
+                });
 
-                // Kiểm tra lại danh sách tài khoản
+                // Bước 2: Yêu cầu quyền truy cập tài khoản
+                const popup = window.open("", "_blank"); // Tạo pop-up tránh chặn
+                await window.ethereum.request({ method: "eth_requestAccounts" });
+                popup.close(); // Đóng pop-up sau khi mở MetaMask
+
+                // Bước 3: Kiểm tra lại danh sách tài khoản
                 const accounts = await window.ethereum.request({ method: "eth_accounts" });
 
                 if (accounts.length > 0) {
@@ -60,8 +74,7 @@
             }
         }
 
-        // Kiểm tra khi tải trang
         checkMetaMask();
     </script>
 </body>
-</html>
+</html> 2
