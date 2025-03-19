@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kết Nối MetaMask Mobile</title>
+    <title>Kết Nối Ví MetaMask & WalletConnect</title>
     
     <!-- Import Web3.js & WalletConnect từ CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/4.2.1/web3.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/@walletconnect/web3-provider/1.7.8/web3-provider.min.js"></script>
+    <script src="https://unpkg.com/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js"></script>
 </head>
 <body>
-    <h2>Kết Nối Ví MetaMask Mobile</h2>
+    <h2>Kết Nối Ví MetaMask hoặc WalletConnect</h2>
     
-    <button onclick="connectWallet()">Kết nối MetaMask hoặc WalletConnect</button>
+    <button onclick="connectWallet()">Kết nối Ví</button>
     <p>Địa chỉ ví: <span id="walletAddress">Chưa kết nối</span></p>
 
     <script>
@@ -24,7 +24,7 @@
                     }
                 });
 
-                await provider.enable(); // Hiển thị QR Code / mở ví di động
+                await provider.enable(); // Hiển thị QR Code hoặc mở MetaMask
 
                 const web3 = new Web3(provider);
                 const accounts = await web3.eth.getAccounts();
@@ -36,8 +36,9 @@
                 }
             } catch (error) {
                 console.error("Lỗi kết nối:", error);
+                alert("Lỗi khi kết nối ví. Hãy kiểm tra lại MetaMask hoặc thử lại!");
             }
         }
     </script>
 </body>
-</html>
+</html>3
