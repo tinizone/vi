@@ -3,53 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connect Wallet and Get Balance</title>
+    <title>WalletConnect Integration</title>
+    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider"></script>
 </head>
 <body>
-    <h1>Connect to Ethereum Wallet</h1>
+    <h1>Connect Wallet using WalletConnect</h1>
     <button id="connectButton">Connect Wallet</button>
-    <p id="walletAddress"></p>
-    <p id="walletBalance"></p>
+    <p id="walletStatus"></p>
 
     <script>
         const connectButton = document.getElementById("connectButton");
-        const walletAddress = document.getElementById("walletAddress");
-        const walletBalance = document.getElementById("walletBalance");
+        const walletStatus = document.getElementById("walletStatus");
 
         connectButton.addEventListener("click", async () => {
-            if (typeof window.ethereum !== "undefined") {
-                try {
-                    // Kết nối với MetaMask và lấy danh sách địa chỉ
-                    const accounts = await ethereum.request({ method: "eth_requestAccounts" });
-                    const account = accounts[0]; // Địa chỉ ví đầu tiên
-                    walletAddress.innerText = `Wallet Address: ${account}`;
+            const WalletConnectProvider = window.WalletConnectProvider.default;
 
-                    // Gửi yêu cầu đến Infura để lấy số dư
-                    const response = await fetch("https://mainnet.infura.io/v3/4372d2aef3d14c4ca2791c7b0a408832", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            jsonrpc: "2.0",
-                            method: "eth_getBalance",
-                            params: [account, "latest"],
-                            id: 1
-                        })
-                    });
+            // Cấu hình WalletConnect
+            const provider = new WalletConnectProvider({
+                infuraId: "4372d2aef3d14c4ca2791c7b0a408832" // API Key Infura
+            });
 
-                    const data = await response.json();
-                    const balanceInWei = data.result;
-                    const balanceInEth = parseFloat(parseInt(balanceInWei, 16) / Math.pow(10, 18)).toFixed(4); // Chuyển đổi từ Wei sang ETH
-                    walletBalance.innerText = `Wallet Balance: ${balanceInEth} ETH`;
-                } catch (error) {
-                    console.error("Error:", error);
-                    walletAddress.innerText = "Failed to connect to wallet.";
-                    walletBalance.innerText = "";
-                }
-            } else {
-                walletAddress.innerText = "MetaMask is not installed. Please install it first.";
-                walletBalance.innerText = "";
+            try {
+                // Kết nối ví
+                await provider.enable();
+                const accounts = provider.accounts;
+                walletStatus.innerText = `Connected Wallet: ${accounts[0]}`;
+            } catch (error) {
+                console.error("Error connecting:", error);
+                walletStatus.innerText = "Failed to connect wallet.";
             }
         });
     </script>
