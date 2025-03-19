@@ -1,31 +1,38 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Ứng dụng Ví Tiền Điện Tử</title>
-    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WalletConnect Example</title>
+    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider"></script>
 </head>
 <body>
-    <button id="connectButton">Kết nối Ví</button>
-    <p id="accountAddress"></p>
+    <h1>Connect Wallet using WalletConnect</h1>
+    <button id="connectButton">Connect Wallet</button>
+    <p id="walletStatus"></p>
 
     <script>
-        async function connectWallet() {
-            if (typeof window.ethereum !== 'undefined') {
-                try {
-                    await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    const provider = new ethers.providers.Web3Provider(window.ethereum);
-                    const signer = provider.getSigner();
-                    const address = await signer.getAddress();
-                    document.getElementById('accountAddress').textContent = `Địa chỉ ví: ${address}`;
-                } catch (error) {
-                    console.error('Lỗi kết nối ví:', error);
-                }
-            } else {
-                alert('Ví tiền điện tử không được tìm thấy.');
-            }
-        }
+        const connectButton = document.getElementById("connectButton");
+        const walletStatus = document.getElementById("walletStatus");
 
-        document.getElementById('connectButton').addEventListener('click', connectWallet);
+        connectButton.addEventListener("click", async () => {
+            const WalletConnectProvider = window.WalletConnectProvider.default;
+
+            // Tạo provider mới
+            const provider = new WalletConnectProvider({
+                infuraId: "4372d2aef3d14c4ca2791c7b0a408832" // Nhập Infura ID tại đây
+            });
+
+            try {
+                // Kết nối ví
+                await provider.enable();
+                const accounts = provider.accounts;
+                walletStatus.innerText = `Connected Wallet: ${accounts[0]}`;
+            } catch (error) {
+                console.error("Error connecting:", error);
+                walletStatus.innerText = "Failed to connect wallet.";
+            }
+        });
     </script>
 </body>
 </html>
