@@ -1,38 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WalletConnect Integration</title>
+    <title>Kết Nối Ví Web3</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/4.2.1/web3.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider"></script>
 </head>
 <body>
-    <h1>Connect Wallet using WalletConnect</h1>
-    <button id="connectButton">Connect Wallet</button>
-    <p id="walletStatus"></p>
+    <h2>Kết Nối Ví Bằng WalletConnect</h2>
+    <button onclick="connectWallet()">Kết nối ví</button>
+    <p>Địa chỉ ví: <span id="walletAddress">Chưa kết nối</span></p>
 
     <script>
-        const connectButton = document.getElementById("connectButton");
-        const walletStatus = document.getElementById("walletStatus");
+        let provider;
 
-        connectButton.addEventListener("click", async () => {
-            const WalletConnectProvider = window.WalletConnectProvider.default;
-
-            // Cấu hình WalletConnect
-            const provider = new WalletConnectProvider({
-                infuraId: "4372d2aef3d14c4ca2791c7b0a408832" // API Key Infura
+        async function connectWallet() {
+            provider = new WalletConnectProvider.default({
+                rpc: {
+                    56: "https://bsc-dataseed.binance.org/", // BSC Mainnet
+                    97: "https://data-seed-prebsc-1-s1.binance.org:8545/" // BSC Testnet
+                },
+                infuraId: "4372d2aef3d14c4ca2791c7b0a408832" // Infura ID của bạn
             });
 
             try {
-                // Kết nối ví
                 await provider.enable();
-                const accounts = provider.accounts;
-                walletStatus.innerText = `Connected Wallet: ${accounts[0]}`;
+                const web3 = new Web3(provider);
+                const accounts = await web3.eth.getAccounts();
+                document.getElementById("walletAddress").innerText = accounts[0] || "Không tìm thấy ví!";
             } catch (error) {
-                console.error("Error connecting:", error);
-                walletStatus.innerText = "Failed to connect wallet.";
+                console.error("Lỗi kết nối ví:", error);
             }
-        });
+        }
     </script>
 </body>
 </html>
