@@ -1,205 +1,85 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kết Nối Ví</title>
+    <title>WalletConnect Auto-Connect</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #1a1a2e;
-            color: #ffffff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-
-        .container {
             text-align: center;
+            margin-top: 50px;
         }
-
-        button, select {
+        button {
             padding: 10px 20px;
             font-size: 16px;
-            background-color: #00d4ff;
-            border: none;
-            border-radius: 5px;
             cursor: pointer;
-            color: #fff;
-            margin: 5px;
         }
-
-        button:hover, select:hover {
-            background-color: #00b4d8;
-        }
-
-        #status {
-            margin-top: 20px;
-            font-size: 18px;
-        }
-
         #walletInfo {
             margin-top: 20px;
-            display: none;
-        }
-
-        #walletInfo p, #status {
-            margin: 5px 0;
-        }
-
-        #error {
-            color: #ff4444;
-            display: none;
-            margin-top: 10px;
-        }
-
-        .loading {
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Kết Nối Ví Của Bạn</h1>
-        <select id="networkSelect">
-            <option value="matic">Polygon Mainnet</option>
-            <option value="maticmum">Polygon Amoy</option>
-            <option value="linea-sepolia">Linea Sepolia</option>
-            <option value="base">Base Mainnet</option>
-        </select>
-        <button id="connectButton">Kết Nối Ví</button>
-        <div id="status"></div>
-        <div id="walletInfo">
-            <p>Địa chỉ ví: <span id="account"></span></p>
-            <p>Mạng: <span id="network"></span></p>
-            <p>Số dư: <span id="balance"></span> MATIC</p>
-        </div>
-        <div id="error"></div>
-    </div>
+    <h1>Kết nối ví qua WalletConnect</h1>
+    <button id="connectButton">Kết nối ví</button>
+    <div id="walletInfo">Địa chỉ ví: Chưa kết nối</div>
 
-    <!-- Thư viện ethers.js -->
-    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" type="text/javascript"></script>
-    <!-- Thư viện WalletConnect -->
+    <!-- Thư viện WalletConnect và Web3 -->
     <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
-    <script>
-        let provider;
-        let walletProvider;
+    <script src="https://unpkg.com/web3@1.7.5/dist/web3.min.js"></script>
 
-        // Hàm chuyển tên mạng sang tiếng Việt
-        function translateNetworkName(networkName) {
-            switch (networkName) {
-                case "matic":
-                    return "Polygon Mainnet";
-                case "maticmum":
-                    return "Polygon Amoy";
-                case "linea-sepolia":
-                    return "Linea Sepolia";
-                case "base":
-                    return "Base Mainnet";
-                default:
-                    return networkName;
+    <script>
+        // Khởi tạo WalletConnect với tùy chọn tối ưu cho mobile
+        const walletConnectProvider = new WalletConnectProvider.default({
+            bridge: "https://bridge.walletconnect.org", // Bridge công khai
+            qrcode: false, // Tắt mã QR mặc định
+            rpc: {
+                1: "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161", // RPC Ethereum
+                // Thêm RPC khác nếu cần (BSC: 56, Polygon: 137, v.v.)
+            },
+        });
+
+        const connectButton = document.getElementById("connectButton");
+        const walletInfo = document.getElementById("walletInfo");
+
+        // Hàm kiểm tra và kết nối ví tự động
+        async function connectWallet() {
+            try {
+                // Kích hoạt WalletConnect
+                await walletConnectProvider.enable();
+
+                // Khởi tạo Web3
+                const web3 = new Web3(walletConnectProvider);
+
+                // Lấy địa chỉ ví
+                const accounts = await web3.eth.getAccounts();
+                const address = accounts[0];
+
+                // Hiển thị thông tin
+                walletInfo.innerText = `Địa chỉ ví: ${address}`;
+
+                // Lắng nghe sự kiện ngắt kết nối
+                walletConnectProvider.on("disconnect", () => {
+                    walletInfo.innerText = "Địa chỉ ví: Chưa kết nối";
+                });
+
+            } catch (error) {
+                console.error("Lỗi kết nối:", error);
+                walletInfo.innerText = "Lỗi: Không thể kết nối ví. Hãy đảm bảo ví đã cài trên thiết bị.";
             }
         }
 
-        // Thay YOUR_API_KEY_SECRET bằng API Key Secret thực tế của bạn từ Infura
-        const YOUR_API_KEY_SECRET = "4372d2aef3d14c4ca2791c7b0a408832"; // Thay bằng API Key Secret của bạn, ví dụ: "abc123def456"
-        const networkRpcs = {
-            "matic": `https://polygon-mainnet.infura.io/v3/${YOUR_API_KEY_SECRET}`,
-            "maticmum": `https://polygon-amoy.infura.io/v3/${YOUR_API_KEY_SECRET}`,
-            "linea-sepolia": `https://linea-sepolia.infura.io/v3/${YOUR_API_KEY_SECRET}`,
-            "base": `https://base-mainnet.infura.io/v3/${YOUR_API_KEY_SECRET}`
+        // Tự động kết nối khi load trang (tùy chọn)
+        window.onload = () => {
+            if (navigator.userAgent.includes("Mobile")) {
+                connectWallet(); // Tự động thử kết nối trên mobile
+            }
         };
 
-        async function connectWallet() {
-            const connectButton = document.getElementById('connectButton');
-            const status = document.getElementById('status');
-            const walletInfo = document.getElementById('walletInfo');
-            const errorDiv = document.getElementById('error');
-            const selectedNetwork = document.getElementById('networkSelect').value;
-            const rpcUrl = networkRpcs[selectedNetwork];
-
-            // Bắt đầu quá trình kết nối
-            status.textContent = "Đang kết nối...";
-            status.classList.add('loading');
-            connectButton.disabled = true;
-            walletInfo.style.display = 'none';
-            errorDiv.style.display = 'none';
-
-            try {
-                if (window.ethereum) {
-                    walletProvider = new ethers.providers.Web3Provider(window.ethereum);
-                    // Yêu cầu kết nối MetaMask
-                    await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    provider = walletProvider;
-                } else {
-                    const WalletConnectProvider = window.WalletConnectProvider.default;
-                    walletProvider = new WalletConnectProvider({
-                        infuraId: YOUR_API_KEY_SECRET,
-                        rpc: { [selectedNetwork]: rpcUrl },
-                    });
-                    // Yêu cầu kết nối WalletConnect
-                    await walletProvider.enable();
-                    provider = new ethers.providers.Web3Provider(walletProvider);
-                }
-
-                // Đặt mạng trong MetaMask (nếu cần)
-                if (window.ethereum) {
-                    await window.ethereum.request({
-                        method: 'wallet_addEthereumChain',
-                        params: [{
-                            chainId: selectedNetwork === "matic" ? "0x89" : 
-                                    selectedNetwork === "maticmum" ? "0x13882" : 
-                                    selectedNetwork === "linea-sepolia" ? "0xe708" : 
-                                    selectedNetwork === "base" ? "0x2105" : "0x89",
-                            chainName: translateNetworkName(selectedNetwork),
-                            rpcUrls: [rpcUrl],
-                            nativeCurrency: {
-                                symbol: selectedNetwork === "base" ? "ETH" : "MATIC",
-                                decimals: 18
-                            },
-                            blockExplorerUrls: ["https://polygonscan.com/"],
-                        }],
-                    });
-                }
-
-                // Lấy thông tin sau khi kết nối
-                const signer = provider.getSigner();
-                const address = await signer.getAddress();
-                const network = await provider.getNetwork();
-                const balance = await provider.getBalance(address);
-                const balanceInEther = ethers.utils.formatEther(balance);
-
-                // Cập nhật giao diện sau khi kết nối thành công
-                status.textContent = "Kết nối thành công!";
-                status.classList.remove('loading');
-                document.getElementById('account').textContent = address;
-                document.getElementById('network').textContent = translateNetworkName(network.name);
-                document.getElementById('balance').textContent = balanceInEther.substring(0, 6);
-                walletInfo.style.display = 'block';
-                setTimeout(() => {
-                    status.textContent = ""; // Ẩn thông báo sau 2 giây
-                }, 2000);
-
-                console.log('Đã kết nối ví:', address, 'Mạng:', translateNetworkName(network.name));
-            } catch (error) {
-                console.error('Lỗi khi kết nối ví:', error);
-                status.textContent = "Kết nối thất bại!";
-                status.classList.remove('loading');
-                errorDiv.textContent = 'Lỗi: ' + error.message;
-                errorDiv.style.display = 'block';
-                connectButton.disabled = false;
-            }
-        }
-
-        document.getElementById('connectButton').addEventListener('click', connectWallet);
+        // Gắn sự kiện vào nút (dành cho kết nối thủ công)
+        connectButton.addEventListener("click", connectWallet);
     </script>
 </body>
 </html>
