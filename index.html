@@ -3,54 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kết Nối Ví MetaMask & Trust Wallet (WalletConnect v2)</title>
-    
-    <!-- Import Web3Modal & WalletConnect v2 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/4.2.1/web3.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/client@2.0.0/dist/index.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/web3modal"></script>
+    <title>Kết Nối Ví Web3</title>
+    <script src="https://unpkg.com/@walletconnect/client@2.0.0-beta.17"></script>
 </head>
 <body>
-    <h2>Kết Nối Ví MetaMask & Trust Wallet</h2>
-    
-    <button onclick="connectWallet()">Kết nối Ví</button>
-    <p>Địa chỉ ví: <span id="walletAddress">Chưa kết nối</span></p>
+    <h1>Kết Nối Ví MetaMask & Trust Wallet</h1>
+    <button id="connectWallet">Kết nối Ví</button>
+    <p id="walletAddress">Địa chỉ ví: Chưa kết nối</p>
 
     <script>
+        const connectWalletButton = document.getElementById("connectWallet");
+        const walletAddressText = document.getElementById("walletAddress");
+
         async function connectWallet() {
             try {
-                const providerOptions = {
-                    walletconnect: {
-                        package: WalletConnect,
-                        options: {
-                            projectId: "71ea15e324540c729b0528f5e9df30f3", // Đăng ký trên WalletConnect Cloud để lấy Project ID
-                            chains: [56], // BSC Mainnet, có thể đổi thành Ethereum (1) hoặc Polygon (137)
-                            rpcMap: {
-                                56: "https://bsc-dataseed.binance.org/"
-                            }
-                        }
+                const walletConnector = new WalletConnect.Client({
+                    projectId: "71ea15e324540c729b0528f5e9df30f3", // Project ID từ WalletConnect Cloud
+                    metadata: {
+                        name: "Tinizone",
+                        description: "Kết nối ví Web3",
+                        url: "https://tinizone.github.io",
+                        icons: ["https://tinizone.github.io/icon.png"]
                     }
-                };
-
-                const web3Modal = new Web3Modal.default({
-                    cacheProvider: true,
-                    providerOptions
                 });
 
-                const provider = await web3Modal.connect();
-                const web3 = new Web3(provider);
-                const accounts = await web3.eth.getAccounts();
-                
-                if (accounts.length > 0) {
-                    document.getElementById("walletAddress").innerText = accounts[0];
-                } else {
-                    document.getElementById("walletAddress").innerText = "Không tìm thấy ví!";
+                // Nếu đã kết nối trước đó thì ngắt kết nối
+                if (walletConnector.connected) {
+                    await walletConnector.disconnect();
                 }
+
+                const session = await walletConnector.connect({
+                    chains: [1], // Ethereum Mainnet
+                    optionalChains: [56], // Binance Smart Chain (BSC)
+                    methods: ["eth_sendTransaction", "personal_sign"],
+                    events: ["chainChanged", "accountsChanged"]
+                });
+
+                if (session) {
+                    const accounts = session.accounts;
+                    walletAddressText.innerText = `Địa chỉ ví: ${accounts[0]}`;
+                } else {
+                    alert("Không thể kết nối ví! Hãy thử lại.");
+                }
+
             } catch (error) {
-                console.error("Lỗi kết nối:", error);
-                alert("Lỗi khi kết nối ví. Hãy kiểm tra lại MetaMask hoặc Trust Wallet!");
+                console.error("Lỗi kết nối ví:", error);
+                alert("Lỗi khi kết nối ví! Hãy kiểm tra lại.");
             }
         }
+
+        connectWalletButton.addEventListener("click", connectWallet);
     </script>
 </body>
 </html>
