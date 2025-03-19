@@ -15,33 +15,52 @@
     <button id="connectButton">Kết nối ví</button>
     <div id="walletInfo">Địa chỉ ví: Chưa kết nối</div>
 
-    <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+    <!-- Thư viện WalletConnect v2 và Web3 -->
+    <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.10.0/dist/index.umd.js"></script>
     <script src="https://unpkg.com/web3@1.7.5/dist/web3.min.js"></script>
 
     <script>
-        const walletConnectProvider = new WalletConnectProvider.default({
-            bridge: "https://bridge.walletconnect.org",
-            qrcode: true, // Bật QR để kiểm tra
-            rpc: { 1: "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161" },
+        // Khởi tạo WalletConnect v2
+        const provider = new EthereumProvider.EthereumProvider({
+            chainId: 1, // Ethereum Mainnet (có thể đổi sang 56 cho BSC, 137 cho Polygon, v.v.)
+            rpc: {
+                1: "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
+            },
+            projectId: "c47b5cb05e1f4bafb5804a06cd0f8f5a", // Project ID miễn phí từ WalletConnect Cloud
         });
 
         async function connectWallet() {
             try {
-                await walletConnectProvider.enable();
-                const web3 = new Web3(walletConnectProvider);
+                console.log("Bắt đầu kết nối...");
+                // Kích hoạt provider
+                await provider.enable();
+                console.log("Provider đã kích hoạt:", provider);
+
+                // Khởi tạo Web3 với provider
+                const web3 = new Web3(provider);
+                console.log("Web3 đã khởi tạo");
+
+                // Lấy địa chỉ ví
                 const accounts = await web3.eth.getAccounts();
                 const address = accounts[0];
+                console.log("Địa chỉ ví:", address);
+
+                // Hiển thị địa chỉ
                 document.getElementById("walletInfo").innerText = `Địa chỉ ví: ${address}`;
 
-                walletConnectProvider.on("disconnect", () => {
+                // Lắng nghe ngắt kết nối
+                provider.on("disconnect", () => {
                     document.getElementById("walletInfo").innerText = "Địa chỉ ví: Chưa kết nối";
+                    console.log("Đã ngắt kết nối");
                 });
+
             } catch (error) {
                 console.error("Lỗi kết nối:", error);
-                document.getElementById("walletInfo").innerText = "Lỗi: Không thể kết nối ví";
+                document.getElementById("walletInfo").innerText = "Lỗi: " + error.message;
             }
         }
 
+        // Gắn sự kiện nút
         document.addEventListener("DOMContentLoaded", () => {
             const connectButton = document.getElementById("connectButton");
             connectButton.addEventListener("click", connectWallet);
