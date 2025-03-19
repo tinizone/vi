@@ -3,40 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kết Nối Ví Trust Wallet & MetaMask</title>
+    <title>Kết Nối Ví</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 10px; background: #222; color: white; margin: 0; }
-        h1 { color: #ff9800; font-size: 24px; margin: 10px 0; }
-        button { background: #ff9800; color: white; border: none; padding: 8px 16px; cursor: pointer; margin: 5px; border-radius: 4px; font-size: 14px; }
-        button:hover { background: #e68a00; }
-        #wallet-address { margin: 10px 0; font-size: 14px; color: #00ff00; word-break: break-word; padding: 0 10px; }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a2e;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            text-align: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #00d4ff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            color: #fff;
+        }
+
+        button:hover {
+            background-color: #00b4d8;
+        }
+
+        #walletInfo {
+            margin-top: 20px;
+            display: none;
+        }
+
+        #walletInfo p {
+            margin: 5px 0;
+        }
     </style>
 </head>
 <body>
-    <h1>Kết Nối Ví Trust Wallet & MetaMask</h1>
-    <button onclick="connectWallet()">🔗 Kết Nối Ví</button>
-    <div id="wallet-address">Chưa kết nối ví...</div>
+    <div class="container">
+        <h1>Kết Nối Ví Của Bạn</h1>
+        <button id="connectButton">Kết Nối Ví</button>
+        <div id="walletInfo">
+            <p>Địa chỉ ví: <span id="account"></span></p>
+            <p>Mạng: <span id="network"></span></p>
+            <p>Số dư: <span id="balance"></span> ETH</p>
+        </div>
+    </div>
 
-    <!-- ethers.js v5 để hỗ trợ Trust Wallet & MetaMask -->
-    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
-
+    <!-- Thư viện ethers.js -->
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" type="text/javascript"></script>
+    <!-- Thư viện WalletConnect -->
+    <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
     <script>
-        async function connectWallet() {
-            if (typeof window.ethereum === "undefined") {
-                alert("❌ Không tìm thấy ví Web3! Hãy mở trang này bằng Chrome trên di động hoặc DApp Browser của Trust Wallet.");
-                return;
-            }
+        // Khởi tạo provider từ ethers.js
+        let provider;
+        let walletProvider;
 
+        // Hàm kết nối ví
+        async function connectWallet() {
             try {
-                const provider = new ethers.providers.Web3Provider(window.ethereum);
-                await window.ethereum.request({ method: "eth_requestAccounts" });
+                // Kiểm tra xem MetaMask có sẵn không
+                if (window.ethereum) {
+                    walletProvider = new ethers.providers.Web3Provider(window.ethereum);
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    provider = walletProvider;
+                } else {
+                    // Nếu không có MetaMask, sử dụng WalletConnect
+                    const WalletConnectProvider = window.WalletConnectProvider.default;
+                    walletProvider = new WalletConnectProvider({
+                        infuraId: "YOUR_INFURA_ID", // Thay bằng Infura ID của bạn
+                        network: 'matic', // Sử dụng mạng Polygon
+                    });
+                    await walletProvider.enable();
+                    provider = new ethers.providers.Web3Provider(walletProvider);
+                }
+
+                // Lấy thông tin ví
                 const signer = provider.getSigner();
                 const address = await signer.getAddress();
-                document.getElementById("wallet-address").innerText = `✅ Đã kết nối: ${address}`;
+                const network = await provider.getNetwork();
+                const balance = await provider.getBalance(address);
+                const balanceInEther = ethers.utils.formatEther(balance);
+
+                // Hiển thị thông tin
+                document.getElementById('account').textContent = address;
+                document.getElementById('network').textContent = network.name;
+                document.getElementById('balance').textContent = balanceInEther.substring(0, 6);
+                document.getElementById('walletInfo').style.display = 'block';
+                document.getElementById('connectButton').textContent = 'Đã Kết Nối';
+                document.getElementById('connectButton').disabled = true;
+
+                console.log('Đã kết nối ví:', address, 'Mạng:', network.name);
             } catch (error) {
-                document.getElementById("wallet-address").innerText = `❌ Lỗi kết nối: ${error.message}`;
+                console.error('Lỗi khi kết nối ví:', error);
+                alert('Không thể kết nối ví. Vui lòng thử lại hoặc cài đặt MetaMask/WalletConnect.');
             }
         }
+
+        // Gắn sự kiện cho nút kết nối
+        document.getElementById('connectButton').addEventListener('click', connectWallet);
     </script>
 </body>
-</html>
+</html>https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js
